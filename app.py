@@ -38,6 +38,7 @@ s3_bucket_name = st.secrets.get("S3_BUCKET_NAME", "")
 aws_access_key = st.secrets.get("AWS_ACCESS_KEY_ID", "")
 aws_secret_key = st.secrets.get("AWS_SECRET_ACCESS_KEY", "")
 s3_region = st.secrets.get("S3_REGION_NAME", "us-east-1")  # Default fallback
+os.environ["FAL_KEY"] =  st.secrets.get("FAL_KEY")
 # --- Helper for Fal Client ---
 def on_queue_update(update):
     if isinstance(update, fal_client.InProgress):
@@ -562,7 +563,7 @@ def generate_single_video(
                                          return JUST the json
 """
         captions_json_str = generate_text_with_claude(
-            prompt=caption_prompt, anthropic_api_key=anthropic_api_key, model="claude-3.7-sonnet-latest" # Haiku is good for structured JSON
+            prompt=caption_prompt, anthropic_api_key=anthropic_api_key # Haiku is good for structured JSON
         )
         captions_data = {}
         if captions_json_str:
