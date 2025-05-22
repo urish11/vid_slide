@@ -520,7 +520,7 @@ def generate_single_video(
         image_prompt_generation_prompt = f"write engaging image prompt for " + video_topic + "make sure to extract the visual aspect of the topic, that can convice people to click and show the positive (negate any non tangible aspect of the topic) make it look really good and attractive.. no text on image!!! NO TEXT ON IMAGE!!!"
         image_prompt_for_fal = generate_text_with_claude(
             prompt=image_prompt_generation_prompt,
-            anthropic_api_key=anthropic_api_key_val
+            anthropic_api_key=anthropic_api_key
         )
         if not image_prompt_for_fal:
             st.warning(f"Could not generate image prompt for '{video_topic}'. Using topic as fallback.")
