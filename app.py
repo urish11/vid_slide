@@ -659,7 +659,7 @@ def generate_single_video(
             anthropic_api_key=anthropic_api_key
         )
 
-        # 4. Generate TTS audio (OpenAI)
+        # 4. Generate TTS audio (OpenAI) 
         if narration_script_text:
             tts_audio_file_path_local = generate_audio_with_timestamps(
                 text=narration_script_text, openai_client=openai_client, voice_id=voice_id
