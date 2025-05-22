@@ -285,7 +285,7 @@ def ease_out_back(t, c1=1.70158, c3=None):
     if c3 is None: c3 = c1 + 1
     return 1 + c3 * pow(t - 1, 3) + c1 * pow(t - 1, 2)
 
-def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, headline_text3, duration: int = 7, resolution=(1080, 1920), learn_more_text = "Learn More Now"):
+def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, headline_text3, duration: int = 7, resolution=(1080, 1920), learn_more = "Learn More Now"):
     logging.info(f"--- Creating Facebook Ad visuals with background: {bg_img_path} ---")
     st.write("MoviePy: Creating video visuals...")
     fps = 30
