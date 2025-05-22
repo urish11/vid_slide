@@ -313,7 +313,7 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
         if clip_aspect_ratio > frame_aspect_ratio:
             scaled_background = background_clip_obj.resize(height=frame_height)
         else:
-            scaled_background = background_clip_obj.resize(width=frame_width,resample= PIL.Image.LANCZOS)
+            scaled_background = background_clip_obj.resize(width=frame_width,resample= Image.LANCZOS)
         
         background_final = scaled_background.crop(
             x_center=scaled_background.w / 2, y_center=scaled_background.h / 2,
