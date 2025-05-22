@@ -447,7 +447,9 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
         button_bg = mp.ColorClip(size=(int(button_width), int(button_height)), color=button_bg_color, ismask=False, duration=duration)
         button_text_render = button_text_render.set_position(('center', 'center'))
         button_clip_obj = mp.CompositeVideoClip([button_bg, button_text_render], size=(int(button_width), int(button_height))).set_duration(duration)
+        button_final_y = resolution[1] * 0.65 - button_height / 2 # Adjusted y-position
 
+        
         time_multi = 1.5
         start_time = 0.6
         anim_dur_line1, anim_dur_line2, anim_dur_line3 = 0.7 * time_multi, 0.6 * time_multi, 0.6 * time_multi
