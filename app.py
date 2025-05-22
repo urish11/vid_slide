@@ -98,7 +98,7 @@ def zoom_effect(
 
 def generate_fal_image(full_prompt: str): # Changed 'topic' to 'full_prompt'
     logging.info(f"--- Requesting image from Fal with prompt: {full_prompt[:100]}... ---")
-    st.write(f"Fal: Generating image for prompt: {full_prompt[:50]}...")
+    st.write(f"Fal: Generating image for prompt: {full_prompt[:150]}...")
     try:
         result = fal_client.subscribe(
             "rundiffusion-fal/juggernaut-flux/lightning", # Using a potentially faster/cheaper model as an example
@@ -634,10 +634,10 @@ def generate_single_video(
         image_prompt_for_fal = generate_text_with_claude(
             prompt=image_prompt_generation_prompt,
             anthropic_api_key=anthropic_api_key
-        )
+        ) + "\n looks great\n photorealistic, candid unstaged"
         if not image_prompt_for_fal:
             st.warning(f"Could not generate image prompt for '{video_topic}'. Using topic as fallback.")
-            image_prompt_for_fal = f"{video_topic}, photorealistic, high quality, detailed" # Basic fallback
+            image_prompt_for_fal = f"{video_topic}, \n looks great\n photorealistic, candid unstaged" # Basic fallback
 
         # 2. Generate and Download Background Image (Fal)
         fal_image_info = generate_fal_image(full_prompt=image_prompt_for_fal)
