@@ -189,12 +189,11 @@ def generate_audio_with_timestamps(text: str, openai_client: OpenAI, voice_id: s
             'announcer uk': {'instructions': 'Speak with a polished announcer voice, standard British English accent (RP).', 'voice': 'shimmer', 'speed': 1.0}
         }
         
-        tts_model = "tts-1" # "tts-1-hd" for higher quality but slower/more expensive
         openai_voice_to_use = voice_id
-        speech_params = {"input": text, "response_format": "mp3", "speed": 1.0}
+        speech_params = {"input": text, "response_format": "mp3", "speed": 1.05}
 
         if voice_id in instructions_per_voice:
-            # tts_model = "gpt-4o-mini-tts" # This model name is not standard for OpenAI TTS API
+            tts_model = "gpt-4o-mini-tts" # This model name is not standard for OpenAI TTS API
             # The user's original code had a commented out check for gpt-4o-mini-tts. Standard models are tts-1, tts-1-hd.
             # If using a specific model that supports instructions, this is where it would be set.
             # For now, assuming tts-1 or tts-1-hd.
@@ -588,7 +587,7 @@ def generate_single_video(
 
 
 
-        learn_more_text = generate_text_with_claude(f"""write 'Learn More Now' in {language}, return just the text1!!!""" ,anthropic_api_key=anthropic_api_key, model="claude-3.7-sonnet-latest" ).replace("'","").replace('"',"")
+        learn_more_text = generate_text_with_claude(f"""write 'Learn More Now' in {language}, return just the text1!!!""" ,anthropic_api_key=anthropic_api_key, model="claude-3-7-sonnet-20250219" ).replace("'","").replace('"',"")
 
         # Determine video duration
         video_duration_final = 7  # Default if no audio
