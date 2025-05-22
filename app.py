@@ -19,6 +19,8 @@ import boto3
 from io import BytesIO # Not directly used for video file upload, but good S3 utility
 import random
 import os
+if not hasattr(Image, 'ANTIALIAS'):
+    Image.ANTIALIAS = Image.Resampling.LANCZOS
 st.set_page_config(layout="wide", page_title="Bulk Video Ad Generator")
 
 # --- Configuration for Logging ---
