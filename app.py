@@ -209,7 +209,8 @@ def generate_audio_with_timestamps(text: str, openai_client: OpenAI, voice_id: s
         speech_params["voice"] = openai_voice_to_use
         
         response = openai_client.audio.speech.create(**speech_params)
-        
+        st.text(response)
+        input()
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio_file_obj:
             temp_audio_path = temp_audio_file_obj.name
             temp_audio_file_obj.write(response.content)
