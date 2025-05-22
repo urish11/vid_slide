@@ -807,7 +807,7 @@ def run_streamlit_app():
 
                     video_url = generate_single_video(
                         video_topic=topic_val, language=lang_val, voice_id=voice_val,
-                        openai_client=openai_client, anthropic_api_key_val=current_anthropic_api_key,
+                        openai_client=openai_client, anthropic_api_key=current_anthropic_api_key,
                         s3_config=s3_config
                     )
                     video_urls_for_current_row.append(video_url if video_url else "FAILED")
