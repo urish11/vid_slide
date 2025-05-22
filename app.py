@@ -126,7 +126,7 @@ def generate_fal_image(full_prompt: str): # Changed 'topic' to 'full_prompt'
         return None
 
 # --- 2. Text Generation with Claude ---
-def generate_text_with_claude(prompt: str, anthropic_api_key: str, model: str = "claude-3.7-sonnet-latest", temperature: float = 1.0, max_retries: int = 3): # claude-3-opus-20240229, claude-3-sonnet-20240229, claude-3-haiku-20240307
+def generate_text_with_claude(prompt: str, anthropic_api_key: str, model: str = "claude-3-7-sonnet-latest", temperature: float = 1.0, max_retries: int = 3): # claude-3-opus-20240229, claude-3-sonnet-20240229, claude-3-haiku-20240307
     logging.info(f"--- Requesting text from Claude with prompt: '{prompt[:70]}...' ---")
     st.write(f"Claude: Generating text (model: {model})...")
     tries = 0
@@ -588,7 +588,7 @@ def generate_single_video(
 
 
 
-        learn_more_text = generate_text_with_claude(f"""write 'Learn More Now' in {language}, return just the text1!!!""").replace("'","").replace('"',"")
+        learn_more_text = generate_text_with_claude(f"""write 'Learn More Now' in {language}, return just the text1!!!""" ,anthropic_api_key=anthropic_api_key, model="claude-3.7-sonnet-latest" ).replace("'","").replace('"',"")
 
         # Determine video duration
         video_duration_final = 7  # Default if no audio
