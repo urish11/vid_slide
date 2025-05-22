@@ -6,6 +6,6 @@ openai
 pydub
 numpy
 Pillow
-moviepy
+moviepy==1.0.3
 boto3
 requests
