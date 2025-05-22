@@ -39,6 +39,7 @@ aws_access_key = st.secrets.get("AWS_ACCESS_KEY_ID", "")
 aws_secret_key = st.secrets.get("AWS_SECRET_ACCESS_KEY", "")
 s3_region = st.secrets.get("S3_REGION_NAME", "us-east-1")  # Default fallback
 os.environ["FAL_KEY"] =  st.secrets.get("FAL_KEY")
+st.text(os.environ["FAL_KEY"])
 # --- Helper for Fal Client ---
 def on_queue_update(update):
     if isinstance(update, fal_client.InProgress):
