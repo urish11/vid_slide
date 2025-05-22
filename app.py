@@ -282,7 +282,7 @@ def ease_out_back(t, c1=1.70158, c3=None):
     if c3 is None: c3 = c1 + 1
     return 1 + c3 * pow(t - 1, 3) + c1 * pow(t - 1, 2)
 
-def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, headline_text3, duration: int = 7, resolution=(1080, 1920)):
+def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, headline_text3, duration: int = 7, resolution=(1080, 1920), learn_more_text = "Learn More Now"):
     logging.info(f"--- Creating Facebook Ad visuals with background: {bg_img_path} ---")
     st.write("MoviePy: Creating video visuals...")
     fps = 30
@@ -318,7 +318,7 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
         ).set_duration(duration)
 
         text_color = 'yellow'
-        button_text = "Learn More Now" # This could be made dynamic / language-specific
+        button_text = learn_more_text # This could be made dynamic / language-specific
 
         text_clip1_obj = rounded_bg_text(headline_text1, fontsize=90, text_color=text_color, bg_color=(0,0,0,220), radius=50, pad_x=50, pad_y=25, duration=duration)
         text_clip1_final_y = resolution[1] * 0.15
@@ -586,6 +586,9 @@ def generate_single_video(
         headline_text3 = captions_data.get("caption3", default_lang_captions["c3"])
 
 
+
+        learn_more_text = generate_text_with_claude(f"""write 'Learn More Now' in {language}, return just the text1!!!""").replace("'","").replace('"',"")
+
         # Determine video duration
         video_duration_final = 7  # Default if no audio
         if tts_audio_file_path_local and os.path.exists(tts_audio_file_path_local):
@@ -605,7 +608,7 @@ def generate_single_video(
         video_visuals_clip_obj = create_facebook_ad_new(
             bg_img_path=bg_image_for_video_path, # Can be None
             headline_text1=headline_text1, headline_text2=headline_text2, headline_text3=headline_text3,
-            duration=video_duration_final
+            duration=video_duration_final, learn_more=learn_more_text
         )
 
         if not video_visuals_clip_obj:
@@ -750,9 +753,9 @@ def run_streamlit_app():
             "region_name": s3_region
         }
 
-        if not all([current_openai_api_key, current_anthropic_api_key, s3_config["bucket_name"], s3_config["access_key_id"], s3_config["secret_access_key"]]):
-            st.error("🚨 Please provide all API keys and S3 configuration details in the sidebar.")
-            return
+        # if not all([current_openai_api_key, current_anthropic_api_key, s3_config["bucket_name"], s3_config["access_key_id"], s3_config["secret_access_key"]]):
+        #     st.error("🚨 Please provide all API keys and S3 configuration details in the sidebar.")
+        #     return
 
         if input_df is None or input_df.empty:
             st.warning("⚠️ No valid topics to process. Please upload a CSV or add topics manually.")
