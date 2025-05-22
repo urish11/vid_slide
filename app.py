@@ -388,21 +388,65 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
         text_clip3_final_y = text_clip2_final_y + text_clip2_obj.h + 25
 
         button_bg_color = (0, 0, 200) # Darker blue
+        # try:
+        #     button_text_render = mp.TextClip(button_text, fontsize=65, color=text_color, font="Arial-Bold", method='label').set_duration(duration)
+        # except Exception as e:
+        #     st.warning("MoviePy: Font 'Arial-Bold' not found for button. Trying 'Liberation-Sans'.")
+        #     try:
+        #         button_text_render = mp.TextClip(button_text, fontsize=65, color=text_color, font="Liberation-Sans", method='label').set_duration(duration)
+        #     except:
+        #         button_text_render = mp.TextClip(button_text, fontsize=65, color=text_color, method='label').set_duration(duration)
+
+
+        # button_width, button_height = button_text_render.w + 80, button_text_render.h + 40
+        # button_bg = mp.ColorClip(size=(button_width, button_height), color=button_bg_color, ismask=False, duration=duration)
+        # button_text_render = button_text_render.set_position(('center', 'center'))
+        # button_clip_obj = mp.CompositeVideoClip([button_bg, button_text_render], size=(button_width, button_height)).set_duration(duration)
+        # button_final_y = resolution[1] * 0.65 - button_height / 2 # Adjusted y-position
+
+
+        button_fontsize = 65
+        button_font_name = "boogaloo.ttf" # Example: ensure this font is in your repo
         try:
-            button_text_render = mp.TextClip(button_text, fontsize=65, color=text_color, font="Arial-Bold", method='label').set_duration(duration)
-        except Exception as e:
-            st.warning("MoviePy: Font 'Arial-Bold' not found for button. Trying 'Liberation-Sans'.")
+            button_actual_font_path = get_font_path(button_font_name)
+            pil_button_font = ImageFont.truetype(button_actual_font_path, button_fontsize)
+        except IOError:
+            logging.warning(f"Button font {button_font_name} not found. Using LiberationSans-Regular.")
+            st.warning(f"Button font '{button_font_name}' not found. Using fallback.")
+            button_actual_font_path = get_font_path("LiberationSans-Regular.ttf") # Fallback
             try:
-                button_text_render = mp.TextClip(button_text, fontsize=65, color=text_color, font="Liberation-Sans", method='label').set_duration(duration)
-            except:
-                button_text_render = mp.TextClip(button_text, fontsize=65, color=text_color, method='label').set_duration(duration)
+                pil_button_font = ImageFont.truetype(button_actual_font_path, button_fontsize)
+            except IOError:
+                logging.error("Fallback button font also not found. Using default PIL font.")
+                pil_button_font = ImageFont.load_default()
 
+        dummy_img_btn = Image.new("RGB", (1,1))
+        dummy_draw_btn = ImageDraw.Draw(dummy_img_btn)
+        try:
+            btn_bbox = dummy_draw_btn.textbbox((0,0), button_text, font=pil_button_font)
+            btn_text_w = btn_bbox[2] - btn_bbox[0]
+            btn_text_h = btn_bbox[3] - btn_bbox[1]
+            btn_draw_x_offset = -btn_bbox[0]
+            btn_draw_y_offset = -btn_bbox[1]
+        except AttributeError:
+            btn_text_w, btn_text_h = dummy_draw_btn.textsize(button_text, font=pil_button_font)
+            btn_draw_x_offset = 0
+            btn_draw_y_offset = 0
 
+        # Create transparent PIL image for the text itself
+        button_text_pil_img = Image.new("RGBA", (int(btn_text_w), int(btn_text_h)), (0,0,0,0))
+        draw_button_text = ImageDraw.Draw(button_text_pil_img)
+        draw_button_text.text((btn_draw_x_offset, btn_draw_y_offset), button_text, font=pil_button_font, fill=text_color)
+
+        button_text_render_np = np.array(button_text_pil_img)
+        button_text_render = mp.ImageClip(button_text_render_np).set_duration(duration)
+        # button_text_render now IS the text clip (transparent background)
+
+        # The rest of your button composition logic:
         button_width, button_height = button_text_render.w + 80, button_text_render.h + 40
-        button_bg = mp.ColorClip(size=(button_width, button_height), color=button_bg_color, ismask=False, duration=duration)
+        button_bg = mp.ColorClip(size=(int(button_width), int(button_height)), color=button_bg_color, ismask=False, duration=duration)
         button_text_render = button_text_render.set_position(('center', 'center'))
-        button_clip_obj = mp.CompositeVideoClip([button_bg, button_text_render], size=(button_width, button_height)).set_duration(duration)
-        button_final_y = resolution[1] * 0.65 - button_height / 2 # Adjusted y-position
+        button_clip_obj = mp.CompositeVideoClip([button_bg, button_text_render], size=(int(button_width), int(button_height))).set_duration(duration)
 
         time_multi = 1.5
         start_time = 0.6
