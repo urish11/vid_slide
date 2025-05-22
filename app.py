@@ -690,7 +690,7 @@ def run_streamlit_app():
     **CSV Format:** Columns: `topic` (text), `count` (number), `language` (e.g., English, Spanish), `voice` (OpenAI voice ID like 'alloy', 'nova', or custom like 'sage').
     """)
 
-    input_source = st.radio("Choose input method:", ("Upload CSV", "Enter Manually"), horizontal=True)
+    input_source = st.radio("Choose input method:", ( "Enter Manually","Upload CSV"), horizontal=True)
     
     input_df = None
 
