@@ -653,7 +653,7 @@ def generate_single_video(
         # If bg_image_for_video_path is None, create_facebook_ad_new handles fallback
 
         # 3. Generate Narration Script Text using Claude (with language)
-        narration_prompt = f"In {language}, Create a short, , and engaging narration script (about 1-2 sentences, around 8-10 seconds read time) for a Facebook video ad. dont use 'today', dont use 'our' or 'we'.  for topic : {video_topic} ,.The narration should complement this, be encouraging, and invite viewers to learn more. dont make huge promises or too sensetional or use in the style of 'get approved' BUT still make people click and be cliffhangry. Ensure the script is entirely in {language}."
+        narration_prompt = f"In {language}, Create a short, , and engaging narration script (about 1-2 sentences, around 8-10 seconds read time) for a Facebook video ad. dont use 'today', dont use 'our' or 'we'.  for topic : {video_topic} ,.The narration should complement this, be encouraging, and invite viewers to learn more. dont make huge out there bombastic promises or too sensetional or use in the style of 'get approved' or make up info BUT still make people click and be cliffhangry. Ensure the script is entirely in {language}."
         narration_script_text = generate_text_with_claude(
             prompt=narration_prompt,
             anthropic_api_key=anthropic_api_key
@@ -789,8 +789,8 @@ def generate_single_video(
 
 # --- Streamlit App UI ---
 def run_streamlit_app():
-    st.title("🎬 Bulk Video Ad Generator")
-    st.markdown("Automate the creation of short video ads with AI-generated content and visuals.")
+    st.title("Video Slide")
+    # st.markdown("Automate the creation of short video ads with AI-generated content and visuals.")
 
     # Sidebar for configurations
  
