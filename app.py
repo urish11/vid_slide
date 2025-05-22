@@ -251,7 +251,7 @@ def make_rounded_rect_png(size, radius, fill=(0, 0, 0, 255)):
     return np.array(img)
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
-def rounded_bg_text(text, font= "boogaloo.ttf"), fontsize=100, text_color="white",
+def rounded_bg_text(text, font= "boogaloo.ttf", fontsize=100, text_color="white",
                     bg_color=(0, 0, 0, 255), radius=40, pad_x=40, pad_y=20, duration=4):
     # Ensure font is available or handle error
     try:
