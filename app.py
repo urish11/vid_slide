@@ -31,7 +31,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # 🧠 API Keys
 openai_api_key = st.secrets.get("OPENAI_API_KEY", "")
 anthropic_api_key = st.secrets.get("ANTHROPIC_API_KEY", "")
-
+st.text(anthropic_api_key)
 # ☁️ S3 Configuration
 s3_bucket_name = st.secrets.get("S3_BUCKET_NAME", "")
 aws_access_key = st.secrets.get("AWS_ACCESS_KEY_ID", "")
