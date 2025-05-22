@@ -772,7 +772,7 @@ def run_streamlit_app():
             return
 
         try:
-            openai_client = OpenAI(api_key=current_openai_api_key)
+            openai_client = OpenAI(api_key=openai_api_key)
             # Test Anthropic client init (optional, generate_text_with_claude does it)
             # anthropic.Anthropic(api_key=current_anthropic_api_key).count_tokens("test")
         except Exception as e:
