@@ -1,0 +1,11 @@
+streamlit
+pandas
+fal-client
+anthropic
+openai
+pydub
+numpy
+Pillow
+moviepy
+boto3
+requests
