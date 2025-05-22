@@ -100,7 +100,7 @@ def generate_fal_image(full_prompt: str): # Changed 'topic' to 'full_prompt'
     st.write(f"Fal: Generating image for prompt: {full_prompt[:50]}...")
     try:
         result = fal_client.subscribe(
-            "fal-ai/fast-lightning-sdxl", # Using a potentially faster/cheaper model as an example
+            "rundiffusion-fal/juggernaut-flux/lightning", # Using a potentially faster/cheaper model as an example
             # "rundiffusion-fal/juggernaut-flux/lightning", # Original model
             arguments={
                 "prompt": full_prompt, # Use the full prompt directly
