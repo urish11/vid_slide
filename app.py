@@ -251,30 +251,83 @@ def make_rounded_rect_png(size, radius, fill=(0, 0, 0, 255)):
     return np.array(img)
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
-def rounded_bg_text(text, font= os.path.join("boogaloo.ttf"), fontsize=100, text_color="white",
-                    bg_color=(0, 0, 0, 255), radius=40, pad_x=40, pad_y=20, duration=4):
-    # Ensure font is available or handle error
-    try:
-        txt_clip = mp.TextClip(text, font=font, fontsize=fontsize, color=text_color, method="label")
-    except Exception as e:
-        logging.error(f"Failed to create TextClip with font '{font}'. Error: {e}. Trying 'Liberation-Sans'.")
-        st.warning(f"Font '{font}' not found or error. Trying 'Liberation-Sans'. Text: '{text}'")
-        try:
-            txt_clip = mp.TextClip(text, font="Liberation-Sans", fontsize=fontsize, color=text_color, method="label") # Common on Linux
-        except Exception as e2:
-            logging.error(f"Failed to create TextClip with 'Liberation-Sans'. Error: {e2}. Using default.")
-            st.error(f"Critical font error for TextClip. Default font will be used. Text: '{text}'")
-            txt_clip = mp.TextClip(text, fontsize=fontsize, color=text_color, method="label") # MoviePy's default
+def get_font_path(font_filename, base_path=None):
+    """Gets the absolute path to a font file bundled with the app."""
+    if base_path is None:
+        base_path = os.path.dirname(os.path.abspath(__file__)) # Gets the directory of the current script
 
-    txt = txt_clip.set_duration(duration)
-    bg_w, bg_h = txt.w + pad_x * 2, txt.h + pad_y * 2
-    rgba = make_rounded_rect_png((bg_w, bg_h), radius, bg_color)
-    bg_clip = mp.ImageClip(rgba, ismask=False).set_duration(duration)
-    txt = txt.set_position(("center", "center"))
-    composite = mp.CompositeVideoClip([bg_clip, txt], size=(bg_w, bg_h))
-    # bg_clip.close() # ImageClip usually doesn't need explicit close unless from file path
-    # txt.close() # TextClip usually doesn't need explicit close
-    return composite
+    # Try in a 'fonts' subdirectory first
+    fonts_dir_path = os.path.join(base_path, "fonts", font_filename)
+    if os.path.exists(fonts_dir_path):
+        return fonts_dir_path
+
+    # Try in the root directory of the script
+    root_path = os.path.join(base_path, font_filename)
+    if os.path.exists(root_path):
+        return root_path
+
+    logging.warning(f"Font '{font_filename}' not found in 'fonts/' or root directory.")
+    return font_filename # Fallback to name, hoping system might find it (unlikely for custom fonts on cloud)
+
+def rounded_bg_text_pillow(text, font_filename="boogaloo.ttf", fontsize=100, text_color="white",
+                           bg_color=(0, 0, 0, 255), radius=40, pad_x=40, pad_y=20, duration=4,
+                           stroke_width=0, stroke_fill="black"): # Optional text stroke
+    try:
+        font_path = get_font_path(font_filename)
+        font = ImageFont.truetype(font_path, fontsize)
+    except IOError as e:
+        logging.warning(f"Pillow: Font '{font_filename}' (path: {font_path}) failed to load: {e}. Trying Liberation Sans.")
+        st.warning(f"Font '{font_filename}' not found or error. Trying 'LiberationSans-Regular.ttf'. Text: '{text}'")
+        try:
+            font_path = get_font_path("LiberationSans-Regular.ttf") # Ensure this is also in your repo
+            font = ImageFont.truetype(font_path, fontsize)
+        except IOError as e2:
+            logging.error(f"Pillow: Fallback font 'LiberationSans-Regular.ttf' also failed: {e2}. Using default.")
+            st.error(f"Critical font error for Text rendering (Pillow). Default font will be used. Text: '{text}'")
+            font = ImageFont.load_default() # Very basic, likely not what you want visually
+
+    # Calculate text size
+    # Create a dummy draw object to calculate text bounding box
+    dummy_img = Image.new("RGB", (1, 1))
+    dummy_draw = ImageDraw.Draw(dummy_img)
+
+    try:
+        # For Pillow >= 9.2.0, textbbox is preferred for more accuracy
+        bbox = dummy_draw.textbbox((0, 0), text, font=font, stroke_width=stroke_width)
+        text_w = bbox[2] - bbox[0]
+        text_h = bbox[3] - bbox[1]
+        # Offset to draw from the actual top-left of the text pixels
+        text_draw_x_offset = -bbox[0]
+        text_draw_y_offset = -bbox[1]
+    except AttributeError:
+        # Fallback for older Pillow versions (textsize is less accurate)
+        text_w, text_h = dummy_draw.textsize(text, font=font, stroke_width=stroke_width)
+        text_draw_x_offset = 0
+        text_draw_y_offset = 0
+
+
+    bg_w = int(text_w + pad_x * 2)
+    bg_h = int(text_h + pad_y * 2)
+
+    # Create background image
+    bg_pil_img = Image.new("RGBA", (bg_w, bg_h), (0, 0, 0, 0)) # Transparent background
+    draw = ImageDraw.Draw(bg_pil_img)
+    draw.rounded_rectangle([(0, 0), (bg_w, bg_h)], radius=radius, fill=bg_color)
+
+    # Position to draw text on the background (considering padding and text's own bbox)
+    text_final_x = pad_x + text_draw_x_offset
+    text_final_y = pad_y + text_draw_y_offset
+
+    # Draw text
+    draw.text((text_final_x, text_final_y), text, font=font, fill=text_color,
+              stroke_width=stroke_width, stroke_fill=stroke_fill)
+
+    # Convert Pillow image to NumPy array for MoviePy
+    frame_np = np.array(bg_pil_img)
+
+    # Create MoviePy ImageClip
+    clip = mp.ImageClip(frame_np, ismask=False).set_duration(duration)
+    return clip
 
 
 def elastic_out(t):
@@ -325,11 +378,13 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
         text_color = 'yellow'
         button_text = learn_more # This could be made dynamic / language-specific
 
-        text_clip1_obj = rounded_bg_text(headline_text1, fontsize=90, text_color=text_color, bg_color=(0,0,0,220), radius=50, pad_x=50, pad_y=25, duration=duration)
+        tetext_clip1_obj = rounded_bg_text_pillow(headline_text1, font_filename="boogaloo.ttf", fontsize=90, text_color=text_color, bg_color=(0,0,0,220), radius=50, pad_x=50, pad_y=25, duration=duration)
+
         text_clip1_final_y = resolution[1] * 0.15
-        text_clip2_obj = rounded_bg_text(headline_text2, fontsize=90, text_color=text_color, bg_color=(0,0,0,220), radius=50, pad_x=50, pad_y=25, duration=duration)
+        text_clip2_obj = rounded_bg_text_pillow(headline_text2, font_filename="boogaloo.ttf", fontsize=90, text_color=text_color, bg_color=(0,0,0,220), radius=50, pad_x=50, pad_y=25, duration=duration)
+
         text_clip2_final_y = text_clip1_final_y + text_clip1_obj.h + 25
-        text_clip3_obj = rounded_bg_text(headline_text3, fontsize=90, text_color=text_color, bg_color=(0,0,0,220), radius=50, pad_x=50, pad_y=25, duration=duration)
+        text_clip3_obj = rounded_bg_text_pillow(headline_text3, font_filename="boogaloo.ttf", fontsize=90, text_color=text_color, bg_color=(0,0,0,220), radius=50, pad_x=50, pad_y=25, duration=duration)
         text_clip3_final_y = text_clip2_final_y + text_clip2_obj.h + 25
 
         button_bg_color = (0, 0, 200) # Darker blue
