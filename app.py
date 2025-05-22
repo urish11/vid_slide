@@ -449,7 +449,7 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
         button_clip_obj = mp.CompositeVideoClip([button_bg, button_text_render], size=(int(button_width), int(button_height))).set_duration(duration)
         button_final_y = resolution[1] * 0.65 - button_height / 2 # Adjusted y-position
 
-        
+
         time_multi = 1.5
         start_time = 0.6
         anim_dur_line1, anim_dur_line2, anim_dur_line3 = 0.7 * time_multi, 0.6 * time_multi, 0.6 * time_multi
@@ -536,7 +536,16 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
             
             # Ensure scale doesn't make it too small or negative during pop-in if progress is 0
             current_scale = max(0.01, scale) # Prevent zero or negative size
-            return (int(original_button_size[0] * current_scale), int(original_button_size[1] * current_scale))
+
+            # Calculate new dimensions
+            new_w_float = original_button_size[0] * current_scale
+            new_h_float = original_button_size[1] * current_scale
+
+            # Ensure dimensions are at least 1 after int conversion
+            # This is the crucial change:
+            final_w = max(1, int(new_w_float))
+            final_h = max(1, int(new_h_float))
+            return (final_w, final_h)
             
         button_clip_obj = button_clip_obj.resize(animate_button_size).set_position(('center', button_final_y))
 
