@@ -34,14 +34,12 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # 🧠 API Keys
 openai_api_key = st.secrets.get("OPENAI_API_KEY", "")
 anthropic_api_key = st.secrets.get("ANTHROPIC_API_KEY", "")
-st.text(anthropic_api_key)
 # ☁️ S3 Configuration
 s3_bucket_name = st.secrets.get("S3_BUCKET_NAME", "")
 aws_access_key = st.secrets.get("AWS_ACCESS_KEY_ID", "")
 aws_secret_key = st.secrets.get("AWS_SECRET_ACCESS_KEY", "")
 s3_region = st.secrets.get("S3_REGION_NAME", "us-east-1")  # Default fallback
 os.environ["FAL_KEY"] =  st.secrets.get("FAL_KEY")
-st.text(os.environ["FAL_KEY"])
 # --- Helper for Fal Client ---
 def on_queue_update(update):
     if isinstance(update, fal_client.InProgress):
