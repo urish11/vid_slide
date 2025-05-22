@@ -132,7 +132,7 @@ def generate_text_with_claude(prompt: str, anthropic_api_key: str, model: str = 
     tries = 0
     while tries < max_retries:
         try:
-            client = anthropic.Anthropic(api_key=anthropic_api_key_val)
+            client = anthropic.Anthropic(api_key=anthropic_api_key)
             message_payload = {
                 "model": model,
                 "max_tokens": 2048, # Increased for potentially longer prompts or JSON
