@@ -323,7 +323,7 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
         ).set_duration(duration)
 
         text_color = 'yellow'
-        button_text = learn_more_text # This could be made dynamic / language-specific
+        button_text = learn_more # This could be made dynamic / language-specific
 
         text_clip1_obj = rounded_bg_text(headline_text1, fontsize=90, text_color=text_color, bg_color=(0,0,0,220), radius=50, pad_x=50, pad_y=25, duration=duration)
         text_clip1_final_y = resolution[1] * 0.15
@@ -852,7 +852,6 @@ def run_streamlit_app():
             st.warning("No videos were generated. Check inputs or logs in console.")
     
     st.markdown("---")
-    st.caption("Developed by AI. For issues, check console logs for detailed error messages from MoviePy, Fal, OpenAI, or Anthropic.")
 
 if __name__ == "__main__":
     run_streamlit_app()
