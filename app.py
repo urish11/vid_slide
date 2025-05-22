@@ -192,7 +192,7 @@ def generate_audio_with_timestamps(text: str, openai_client: OpenAI, voice_id: s
         
         openai_voice_to_use = voice_id
         speech_params = {"input": text, "response_format": "mp3", "speed": 1.05}
-
+        tts_model = "gpt-4o-mini-tts"
         if voice_id in instructions_per_voice:
             tts_model = "gpt-4o-mini-tts" # This model name is not standard for OpenAI TTS API
             # The user's original code had a commented out check for gpt-4o-mini-tts. Standard models are tts-1, tts-1-hd.
@@ -203,6 +203,7 @@ def generate_audio_with_timestamps(text: str, openai_client: OpenAI, voice_id: s
             # If this was for a different API or a hypothetical feature, it would go here.
             # For standard OpenAI TTS, we control voice and speed. The 'prompt' for TTS is the text itself.
             # speech_params["instructions"] = instructions_per_voice[voice_id]['instructions']
+            speech_params["instructions"] = instructions_per_voice[voice_id]['instructions']
             speech_params["speed"] = instructions_per_voice[voice_id].get('speed', 1.0)
         
         speech_params["model"] = tts_model
@@ -210,7 +211,7 @@ def generate_audio_with_timestamps(text: str, openai_client: OpenAI, voice_id: s
         
         response = openai_client.audio.speech.create(**speech_params)
         st.text(response)
-        input()
+
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio_file_obj:
             temp_audio_path = temp_audio_file_obj.name
             temp_audio_file_obj.write(response.content)
