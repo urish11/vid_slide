@@ -18,6 +18,7 @@ from collections.abc import Callable
 import boto3
 from io import BytesIO # Not directly used for video file upload, but good S3 utility
 import random
+import os
 
 # --- Configuration for Logging ---
 # Streamlit typically handles its own logging display.
@@ -243,8 +244,9 @@ def make_rounded_rect_png(size, radius, fill=(0, 0, 0, 255)):
     draw = ImageDraw.Draw(img, "RGBA")
     draw.rounded_rectangle([(0, 0), (w, h)], radius=radius, fill=fill)
     return np.array(img)
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
-def rounded_bg_text(text, font="Arial", fontsize=100, text_color="white",
+def rounded_bg_text(text, font=os.path.join(current_dir, "boogaloo.ttf"), fontsize=100, text_color="white",
                     bg_color=(0, 0, 0, 255), radius=40, pad_x=40, pad_y=20, duration=4):
     # Ensure font is available or handle error
     try:
