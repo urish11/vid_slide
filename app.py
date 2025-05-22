@@ -500,7 +500,7 @@ def generate_single_video(
     language: str,
     voice_id: str,
     openai_client: OpenAI,
-    anthropic_api_key_val: str,
+    anthropic_api_key: str,
     s3_config: dict
 ):
     logging.info(f"--- Starting video generation for topic: '{video_topic}', lang: '{language}', voice: '{voice_id}' ---")
