@@ -182,7 +182,7 @@ def generate_audio_with_timestamps(text: str, openai_client: OpenAI, voice_id: s
     try:
         if not text or not text.strip():
             raise ValueError("Input text for TTS cannot be empty.")
-        
+        tts_model = "gpt-4o-mini-tts"
         instructions_per_voice = {
             'redneck': {'instructions': 'Speak like an older American redneck with a heavy accent. Use a deep, enthusiastic voice.', 'voice': 'onyx', 'speed': 1.05}, # Example, adjust voice model
             'announcer': {'instructions': 'Deliver this with a polished, professional announcer voice, standard American accent.', 'voice': 'alloy', 'speed': 1.0},
