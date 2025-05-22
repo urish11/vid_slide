@@ -19,6 +19,7 @@ import boto3
 from io import BytesIO # Not directly used for video file upload, but good S3 utility
 import random
 import os
+st.set_page_config(layout="wide", page_title="Bulk Video Ad Generator")
 
 # --- Configuration for Logging ---
 # Streamlit typically handles its own logging display.
@@ -676,7 +677,6 @@ def generate_single_video(
 
 # --- Streamlit App UI ---
 def run_streamlit_app():
-    st.set_page_config(layout="wide", page_title="Bulk Video Ad Generator")
     st.title("🎬 Bulk Video Ad Generator")
     st.markdown("Automate the creation of short video ads with AI-generated content and visuals.")
 
