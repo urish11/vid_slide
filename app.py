@@ -110,8 +110,7 @@ def generate_fal_image(full_prompt: str): # Changed 'topic' to 'full_prompt'
                 "enable_safety_checker": True
             },
             with_logs=True, # Set to False to reduce console noise if preferred
-            on_queue_update=on_queue_update,
-            timeout=300 # 5 minutes timeout
+            on_queue_update=on_queue_update
         )
         logging.info(f"Fal image generation result: {result}")
         if result and 'images' in result and len(result['images']) > 0:
