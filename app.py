@@ -378,7 +378,7 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
         text_color = 'yellow'
         button_text = learn_more # This could be made dynamic / language-specific
 
-        tetext_clip1_obj = rounded_bg_text_pillow(headline_text1, font_filename="boogaloo.ttf", fontsize=90, text_color=text_color, bg_color=(0,0,0,220), radius=50, pad_x=50, pad_y=25, duration=duration)
+        text_clip1_obj = rounded_bg_text_pillow(headline_text1, font_filename="boogaloo.ttf", fontsize=90, text_color=text_color, bg_color=(0,0,0,220), radius=50, pad_x=50, pad_y=25, duration=duration)
 
         text_clip1_final_y = resolution[1] * 0.15
         text_clip2_obj = rounded_bg_text_pillow(headline_text2, font_filename="boogaloo.ttf", fontsize=90, text_color=text_color, bg_color=(0,0,0,220), radius=50, pad_x=50, pad_y=25, duration=duration)
