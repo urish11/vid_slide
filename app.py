@@ -21,7 +21,7 @@ import random
 import os
 if not hasattr(Image, 'ANTIALIAS'):
     Image.ANTIALIAS = Image.Resampling.LANCZOS
-st.set_page_config(layout="wide", page_title="Bulk Video Ad Generator")
+st.set_page_config(layout="wide", page_title="Vid Slide Gen",page_icon="🎦")
 
 # --- Configuration for Logging ---
 # Streamlit typically handles its own logging display.
