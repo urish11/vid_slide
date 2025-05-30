@@ -648,6 +648,7 @@ def generate_single_video(
                 temp_bg_image_path = tmp_img_file.name
             if download_image(fal_image_info['url'], temp_bg_image_path):
                 bg_image_for_video_path = temp_bg_image_path
+                st.image(bg_image_for_video_path)
             else: # Download failed
                 if os.path.exists(temp_bg_image_path): os.remove(temp_bg_image_path)
                 temp_bg_image_path = None # Ensure it's None so fallback is used
