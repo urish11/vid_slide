@@ -830,8 +830,8 @@ def run_streamlit_app():
     else: # Manual Input
         if 'manual_df' not in st.session_state:
             st.session_state.manual_df = pd.DataFrame([
-                {"topic": "Eco-Friendly Homes", "count": 1, "language": "English", "voice": "sage"},
-                {"topic": "Gourmet Coffee Subscription", "count": 1, "language": "Spanish", "voice": "onyx"},
+                {"topic": "Eco-Friendly Homes","language": "English", "count": 1,  "voice": "sage"}
+                
             ])
         
         st.subheader("Manually Add/Edit Topics")
