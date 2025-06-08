@@ -127,7 +127,7 @@ def generate_fal_image(full_prompt: str): # Changed 'topic' to 'full_prompt'
         return None
 
 # --- 2. Text Generation with Claude ---
-def generate_text_with_claude(prompt: str, anthropic_api_key: str, model: str = "claude-3-7-sonnet-latest", temperature: float = 1.0, max_retries: int = 3): # claude-3-opus-20240229, claude-3-sonnet-20240229, claude-3-haiku-20240307
+def generate_text_with_claude(prompt: str, anthropic_api_key: str, model: str = "claude-3-7-sonnet-latest", temperature: float = 0.88, max_retries: int = 3): # claude-3-opus-20240229, claude-3-sonnet-20240229, claude-3-haiku-20240307
     logging.info(f"--- Requesting text from Claude with prompt: '{prompt[:70]}...' ---")
     st.write(f"Claude: Generating text (model: {model})...")
     tries = 0
