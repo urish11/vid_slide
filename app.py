@@ -145,7 +145,7 @@ def generate_text_with_claude(prompt: str, anthropic_api_key: str, model: str = 
             if len(response.content) > 0 and response.content[0].type == "text":
                 generated_text = response.content[0].text
                 logging.info(f"Claude generated text: {generated_text[:100]}...")
-                st.write("Claude: Text generated.")
+                st.write(f"Claude: Text generated: {generated_text}")
                 return generated_text
             else:
                 logging.error("Claude response content not found or not text.")
@@ -655,7 +655,7 @@ def generate_single_video(
         # If bg_image_for_video_path is None, create_facebook_ad_new handles fallback
 
         # 3. Generate Narration Script Text using Claude (with language)
-        narration_prompt = f"In {language}, Create a short, , and engaging narration script (about 1-2 sentences, around 8-10 seconds read time) for a Facebook video ad. dont use these or simillar: 'today' or 'limted time' 'x% off discount' or 'Apply Now' 'instant' 'in 1 minute' , dont use 'our' or 'we'.  for topic : {video_topic} ,.The narration should complement this, be encouraging, and invite viewers to learn more (use somethink like ...'Click now to ...'). dont make huge out there bombastic promises or too sensetional or use in the style of 'get approved' 'apply here' 'browse items...'  or make up info BUT still make people click and be cliffhangry. Ensure the script is entirely in {language}. \n  End with a strong convinsing  CTA like: 'Click to explore options or 'Tap to see how it works.' \nagain, do be sesetional, just a bit, and dont make up promises not provided as input" 
+        narration_prompt = f"In {language}, Create a short, , and engaging narration script (about 1-2 sentences, around 8-10 seconds read time) for a Facebook video ad. dont use these or simillar: 'today' or 'limted time' 'x% off discount' or 'Apply Now' 'instant' 'in 1 minute' , dont use 'our' or 'we'.  for topic : {video_topic} ,.The narration should complement this, be encouraging, and invite viewers to learn more (use somethink like ...'Click now to ...'). dont make huge out there bombastic promises or too sensetional or use in the style of 'get approved' 'apply here' 'browse items...'  or make up info BUT still make people click and be cliffhangry. Ensure the script is entirely in {language}. \n  End with a strong convinsing  CTA in the likes of: 'Click to explore options or 'Tap to see how it works.' dont use "to see models\what's available ... etc"   \nagain, do be sesetional, just a bit, and dont make up promises not provided as input" 
         narration_script_text = generate_text_with_claude(
             prompt=narration_prompt,
             anthropic_api_key=anthropic_api_key
