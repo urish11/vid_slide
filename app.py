@@ -127,7 +127,7 @@ def generate_fal_image(full_prompt: str): # Changed 'topic' to 'full_prompt'
         return None
 
 # --- 2. Text Generation with Claude ---
-def generate_text_with_claude(prompt: str, anthropic_api_key: str, model: str = "claude-3-7-sonnet-latest", temperature: float = 0.75, max_retries: int = 3): # claude-3-opus-20240229, claude-3-sonnet-20240229, claude-3-haiku-20240307
+def generate_text_with_claude(prompt: str, anthropic_api_key: str, model: str = "claude-3-7-sonnet-latest", temperature: float = 0.88, max_retries: int = 3): # claude-3-opus-20240229, claude-3-sonnet-20240229, claude-3-haiku-20240307
     logging.info(f"--- Requesting text from Claude with prompt: '{prompt[:70]}...' ---")
     st.write(f"Claude: Generating text (model: {model})...")
     tries = 0
@@ -655,7 +655,8 @@ def generate_single_video(
         # If bg_image_for_video_path is None, create_facebook_ad_new handles fallback
 
         # 3. Generate Narration Script Text using Claude (with language)
-        narration_prompt = f"In {language}, Create a short, , and engaging narration script (about 1-2 sentences, around 8-10 seconds read time) for a Facebook video ad. dont use these or simillar: 'today' or 'limted time' 'x% off discount' or 'Apply Now' 'instant' 'in 1 minute' , dont use 'our' or 'we'.  for topic : {video_topic} ,.The narration should complement this, be encouraging, and invite viewers to learn more (use somethink like ...'Click now to ...'). dont make huge out there bombastic promises or too sensetional or use in the style of 'get approved' 'apply here' 'browse items...'  or make up info BUT still make people click and be cliffhangry. Ensure the script is entirely in {language}."
+        narration_prompt = f"In {language}, Create a short, , and engaging narration script (about 1-2 sentences, around 8-10 seconds read time) for a Facebook video ad. dont use these or simillar: 'today' or 'limted time' 'x% off discount' or 'Apply Now' 'instant' 'in 1 minute' , dont use 'our' or 'we'.  for topic : {video_topic} ,.The narration should complement this, be encouraging, and invite viewers to learn more (use somethink like ...'Click now to ...'). dont make huge out there bombastic promises or too sensetional or use in the style of 'get approved' 'apply here' 'browse items...'  or make up info BUT still make people click and be cliffhangry. Ensure the script is entirely in {language}.
+        again, do be sesetional, just a bit, and dont make up promises not provided as input" 
         narration_script_text = generate_text_with_claude(
             prompt=narration_prompt,
             anthropic_api_key=anthropic_api_key
