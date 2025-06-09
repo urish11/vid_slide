@@ -676,7 +676,7 @@ def generate_single_video(
                                          return JUST the json
 """
         captions_json_str = generate_text_with_claude(
-            prompt=caption_prompt, anthropic_api_key=anthropic_api_key # Haiku is good for structured JSON
+            prompt=caption_prompt, anthropic_api_key=anthropic_api_key,model = "claude-3-7-sonnet-latest" # Haiku is good for structured JSON
         )
         captions_data = {}
         if captions_json_str:
