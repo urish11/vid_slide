@@ -554,8 +554,8 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
 
         arrows_overlay = mp.VideoFileClip("arrows.webm")
         arrows_overlay = arrows_overlay.set_mask(
-        arrows_overlay.mask.fx(lambda m: m.to_ImageClip().fl_image(lambda img: (img > 0.95).astype(float))) )
-           
+        arrows_overlay.mask.fx(lambda m: m.to_ImageClip().fl_image(lambda img: (img > 0.95).astype(float)))
+)           
         arrows_overlay = arrows_overlay.rotate(-90).resize(width=0.07 * 1280).loop(n=5)
         arrows_overlay = arrows_overlay.set_position(("center", 0.78), relative=True).set_start(6)
 
