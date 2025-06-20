@@ -566,9 +566,9 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
                             # .set_mask(lambda: arrows_overlay.mask.fl_image(lambda img: (img > 0.95).astype(float)))
                             .rotate(-90)
                             # .resize(width=0.07 * 1280)
-                            .loop(duration=duration)
+                            # .loop(duration=duration)
                             .set_position(("center", int(0.78 * resolution[1])))
-                            .set_start(3))
+                            # .set_start(3))
 
 
         final_clip = mp.CompositeVideoClip(
