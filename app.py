@@ -569,7 +569,7 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
                             # .loop(duration=duration)
                             .set_position(("center", int(0.78 * resolution[1])))
                             # .set_start(3))
-
+ 
 
         final_clip = mp.CompositeVideoClip(
             [background_final, text_clip1_obj, text_clip2_obj, text_clip3_obj, button_clip_obj,arrows_overlay],
