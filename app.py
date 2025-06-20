@@ -555,11 +555,11 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
         arrows_overlay = mp.VideoFileClip("arrows_2.mov",has_mask=True)
         st.write("Duration:", arrows_overlay.duration)
         st.write("Has mask?", arrows_overlay.mask is not None)
-        # arrows_overlay = arrows_overlay.set_mask(
-        # arrows_overlay.mask.fx(lambda m: m.to_ImageClip().fl_image(lambda img: (img > 0.95).astype(float))))
+        arrows_overlay = arrows_overlay.set_mask(
+        arrows_overlay.mask.fx(lambda m: m.to_ImageClip().fl_image(lambda img: (img > 0.95).astype(float))))
            
         arrows_overlay = arrows_overlay.loop(duration=duration)
-        arrows_overlay = arrows_overlay.set_position(("center", 0.78), relative=True).set_start(3)
+        arrows_overlay = arrows_overlay.set_position(("center", "center"), relative=True).set_start(3)
 
 
 
