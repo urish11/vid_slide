@@ -553,8 +553,8 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
         #### Arrow overlay
 
         arrows_overlay = mp.VideoFileClip("arrows.webm",has_mask=True)
-        st.text("Duration:", clip.duration)
-        st.text("Has mask?", clip.mask is not None)
+        st.text("Duration:", arrows_overlay.duration)
+        st.text("Has mask?", arrows_overlay.mask is not None)
         arrows_overlay.preview()
         arrows_overlay = arrows_overlay.set_mask(
         arrows_overlay.mask.fx(lambda m: m.to_ImageClip().fl_image(lambda img: (img > 0.95).astype(float)))
