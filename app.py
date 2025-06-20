@@ -548,8 +548,21 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
             
         button_clip_obj = button_clip_obj.resize(animate_button_size).set_position(('center', button_final_y))
 
+
+
+            #### arrow animations
+
+        arrows_overlay = mp.VideoFileClip("arrows.webm")
+        # arrows_overlay = arrows_overlay.set_mask(
+        # arrows_overlay.mask.fx(lambda m: m.to_ImageClip().fl_image(lambda img: (img > 0.95).astype(float))) )
+           
+        arrows_overlay = arrows_overlay.rotate(-90).resize(width=0.07 * 1280).loop(n=5)
+        arrows_overlay = arrows_overlay.set_position(("center", 0.78), relative=True).set_start(6)
+
+
+
         final_clip = mp.CompositeVideoClip(
-            [background_final, text_clip1_obj, text_clip2_obj, text_clip3_obj, button_clip_obj],
+            [background_final, text_clip1_obj, text_clip2_obj, text_clip3_obj, button_clip_obj,arrows_overlay],
             size=resolution
         ).set_duration(duration)
         
