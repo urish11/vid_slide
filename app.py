@@ -678,6 +678,7 @@ End your prompt with these exact tags (for the diffusion model):
 
         image_prompt_for_fal = generate_text_with_claude(
             prompt=image_prompt_generation_prompt,
+            model = "claude-opus-4-20250514",
             anthropic_api_key=anthropic_api_key
         ) + "\n looks great\n photorealistic, candid unstaged"
         if not image_prompt_for_fal:
