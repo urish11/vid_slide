@@ -960,7 +960,7 @@ def run_streamlit_app():
                 count_val = int(row['count'])
                 lang_val = str(row['language'])
                 voice_val = str(row['voice'])
-                is_arrow = row['arrow']
+                is_arrow = row['is_arrow']
 
                 st.markdown(f"Processing: **{topic_val}** ({lang_val}) - {count_val} video(s) with voice '{voice_val}'")
                 
