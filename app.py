@@ -22,7 +22,7 @@ import os
 if not hasattr(Image, 'ANTIALIAS'):
     Image.ANTIALIAS = Image.Resampling.LANCZOS
 st.set_page_config(layout="wide", page_title="Vid Slide Gen",page_icon="🎦")
-
+arrows_overlay = None
 # --- Configuration for Logging ---
 # Streamlit typically handles its own logging display.
 # Console logging is still useful for development/debugging.
@@ -554,7 +554,7 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
 
 
         #### Arrow overlay
-        if is_arrow:
+        if is_arrow and arrows_overlay is not None :
             arrows_overlay = mp.VideoFileClip("arrows_2_4.mov",has_mask=True)
             st.write("Duration:", arrows_overlay.duration)
             st.write("Has mask?", arrows_overlay.mask is not None)
