@@ -543,7 +543,7 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
             # Ensure dimensions are at least 1 after int conversion
             # This is the crucial change:
             final_w = max(1, int(new_w_float))
-            final_h = max(1, int(new_h_float))
+            final_h = max(1, int(new_h_float)) 
             return (final_w, final_h)
             
         button_clip_obj = button_clip_obj.resize(animate_button_size).set_position(('center', button_final_y))
