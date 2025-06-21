@@ -551,18 +551,18 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
 
 
         #### Arrow overlay
+        if is_arrow:
+            arrows_overlay = mp.VideoFileClip("arrows_2_4.mov",has_mask=True)
+            st.write("Duration:", arrows_overlay.duration)
+            st.write("Has mask?", arrows_overlay.mask is not None)
+            # arrows_overlay = arrows_overlay.set_mask(
+            # arrows_overlay.mask.fx(lambda m: m.to_ImageClip().fl_image(lambda img: (img > 0.95).astype(float))))
+            final_arrow_y = int(0.5 * resolution[1])
+            final_arrow_x = int(0.335 * resolution[0])z
+            # arrows_overlay = arrows_overlay.rotate(-90, apply_to='mask')
+            arrows_overlay = arrows_overlay.loop(duration=duration).resize(0.75)
 
-        arrows_overlay = mp.VideoFileClip("arrows_2_4.mov",has_mask=True)
-        st.write("Duration:", arrows_overlay.duration)
-        st.write("Has mask?", arrows_overlay.mask is not None)
-        # arrows_overlay = arrows_overlay.set_mask(
-        # arrows_overlay.mask.fx(lambda m: m.to_ImageClip().fl_image(lambda img: (img > 0.95).astype(float))))
-        final_arrow_y = int(0.5 * resolution[1])
-        final_arrow_x = int(0.335 * resolution[0])
-        # arrows_overlay = arrows_overlay.rotate(-90, apply_to='mask')
-        arrows_overlay = arrows_overlay.loop(duration=duration).resize(0.75)
-
-        arrows_overlay = arrows_overlay.set_position((final_arrow_x, final_arrow_y )).set_start(5.5)
+            arrows_overlay = arrows_overlay.set_position((final_arrow_x, final_arrow_y )).set_start(5.5)
  
         # arrows_overlay = (
         #                     mp.VideoFileClip("arrows_2.mov", has_mask=True)
@@ -574,8 +574,14 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
         #                      # .set_mask(lambda: arrows_overlay.mask.fl_image(lambda img: (img > 0.95).astype(float)))
 
 
+
+        composite_list = [background_final, text_clip1_obj, text_clip2_obj, text_clip3_obj, button_clip_obj]
+        if is_arrow : 
+            composite_list += [arrows_overlay]
+
+
         final_clip = mp.CompositeVideoClip(
-            [background_final, text_clip1_obj, text_clip2_obj, text_clip3_obj, button_clip_obj,arrows_overlay],
+            composite_list,
             size=resolution
         ).set_duration(duration)
         
