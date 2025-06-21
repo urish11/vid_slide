@@ -754,9 +754,9 @@ def generate_single_video(
             # Add more languages as needed
         }
         default_lang_captions = default_captions_map.get(language, default_captions_map["English"])
-        headline_text1 = captions_data.get("caption1", default_lang_captions["c1"]).capitalize()
-        headline_text2 = captions_data.get("caption2", default_lang_captions["c2"]).capitalize()
-        headline_text3 = captions_data.get("caption3", default_lang_captions["c3"]).capitalize()
+        headline_text1 = captions_data.get("caption1", default_lang_captions["c1"]).upper()
+        headline_text2 = captions_data.get("caption2", default_lang_captions["c2"]).upper()
+        headline_text3 = captions_data.get("caption3", default_lang_captions["c3"]).upper()
 
 
 
