@@ -451,7 +451,7 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
         elif not is_arrow:
             button_final_y = resolution[1] * 0.65 - button_height / 2 # Adjusted y-position 
 
-            
+
         time_multi = 1.5
         start_time = 0.6
         anim_dur_line1, anim_dur_line2, anim_dur_line3 = 0.7 * time_multi, 0.6 * time_multi, 0.6 * time_multi
@@ -909,7 +909,7 @@ def run_streamlit_app():
                              "sage", "redneck", "announcer", "announcer uk"], # Custom mapped
                     required=True
                 ),
-                "is_arrow" :st.column_config.SelectboxColumn("Show arrow", options=[True , False])
+                "is_arrow" :st.column_config.SelectboxColumn("Show arrow", options=[True , False, "Random"])
             }
         )
         st.session_state.manual_df = edited_df
@@ -970,6 +970,8 @@ def run_streamlit_app():
                 lang_val = str(row['language'])
                 voice_val = str(row['voice'])
                 is_arrow = row['is_arrow']
+
+                if is_arrow == "Random": is_arrow = random.choice([True,False])
 
                 st.markdown(f"Processing: **{topic_val}** ({lang_val}) - {count_val} video(s) with voice '{voice_val}'")
                 
