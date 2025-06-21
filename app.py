@@ -557,9 +557,10 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
         st.write("Has mask?", arrows_overlay.mask is not None)
         # arrows_overlay = arrows_overlay.set_mask(
         # arrows_overlay.mask.fx(lambda m: m.to_ImageClip().fl_image(lambda img: (img > 0.95).astype(float))))
-           
+
+        arrows_overlay = arrows_overlay.rotate(-90)
         arrows_overlay = arrows_overlay.loop(duration=duration)
-        arrows_overlay = arrows_overlay.set_position(("center", "center"), relative=True).set_start(5)
+        arrows_overlay = arrows_overlay.set_position(("center", int(0.78 * resolution[1])), relative=True).set_start(5)
 
         # arrows_overlay = (
         #                     mp.VideoFileClip("arrows_2.mov", has_mask=True)
@@ -656,25 +657,25 @@ def generate_single_video(
         # 1. Generate Image Prompt (using Claude)
         image_prompt_generation_prompt = f"write engaging image prompt for " + video_topic + "make sure to extract the visual aspect of the topic, that can convice people to click and show the positive most direct benefit (negate any non tangible aspect of the topic) make it look really good and attractive. ideally show a real life scenario people can relate.. like for 'bank repossessed cars' show a lot of cars in a lot and people around them. no overlay text on image!!! NO  TEXT ON IMAGE!!!"
 
-        image_prompt_generation_prompt = (
-    f"""Craft a SINGLE, vivid image-generation prompt for the topic: “{video_topic}”.
+#         image_prompt_generation_prompt = (
+#     f"""Craft a SINGLE, vivid image-generation prompt for the topic: “{video_topic}”.
 
-Your goal: an irresistible thumbnail that **stops the scroll** and sparks immediate curiosity.
+# Your goal: an irresistible thumbnail that **stops the scroll** and sparks immediate curiosity.
 
-🏆  Must-have ingredients
-1. **Big visual payoff** – show the *tangible* benefit or “after” moment in action.
-2. **Human hook** – include at least one real person with a clear facial emotion  
-   (amazement, satisfaction, discovery) pointing, gazing, or reacting to the scene.
-3. **Tension & reveal** – frame the shot so the subject feels *mid-action* or partially
-   hidden, hinting there’s more to see if the viewer clicks.
-4. **Photorealistic, candid** – smartphone-style authenticity, natural lighting, slight imperfections.
-5. **Color pop** – one strong accent color (clothing, object, sign) that draws the eye.
-6. **NO text, watermarks, logos, filters, AI artifacts, or studio lighting.**
+# 🏆  Must-have ingredients
+# 1. **Big visual payoff** – show the *tangible* benefit or “after” moment in action.
+# 2. **Human hook** – include at least one real person with a clear facial emotion  
+#    (amazement, satisfaction, discovery) pointing, gazing, or reacting to the scene.
+# 3. **Tension & reveal** – frame the shot so the subject feels *mid-action* or partially
+#    hidden, hinting there’s more to see if the viewer clicks.
+# 4. **Photorealistic, candid** – smartphone-style authenticity, natural lighting, slight imperfections.
+# 5. **Color pop** – one strong accent color (clothing, object, sign) that draws the eye.
+# 6. **NO text, watermarks, logos, filters, AI artifacts, or studio lighting.**
 
-End your prompt with these exact tags (for the diffusion model):
-“photorealistic, candid, unstaged, natural lighting, dynamic composition, shallow depth of field, no text on image, no logos, no watermark.”
-"""
-)
+# End your prompt with these exact tags (for the diffusion model):
+# “photorealistic, candid, unstaged, natural lighting, dynamic composition, shallow depth of field, no text on image, no logos, no watermark.”
+# """
+# )
 
         image_prompt_for_fal = generate_text_with_claude(
             prompt=image_prompt_generation_prompt,
