@@ -446,7 +446,7 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
         button_bg = mp.ColorClip(size=(int(button_width), int(button_height)), color=button_bg_color, ismask=False, duration=duration)
         button_text_render = button_text_render.set_position(('center', 'center'))
         button_clip_obj = mp.CompositeVideoClip([button_bg, button_text_render], size=(int(button_width), int(button_height))).set_duration(duration)
-        button_final_y = resolution[1] * 0.52 - button_height / 2 # Adjusted y-position || was 0.65
+        button_final_y = resolution[1] * 0.45 - button_height / 2 # Adjusted y-position || was 0.65
 
 
         time_multi = 1.5
@@ -558,7 +558,7 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
         # arrows_overlay = arrows_overlay.set_mask(
         # arrows_overlay.mask.fx(lambda m: m.to_ImageClip().fl_image(lambda img: (img > 0.95).astype(float))))
         final_arrow_y = int(0.5 * resolution[1])
-        final_arrow_x = int(0.32 * resolution[0])
+        final_arrow_x = int(0.335 * resolution[0])
         # arrows_overlay = arrows_overlay.rotate(-90, apply_to='mask')
         arrows_overlay = arrows_overlay.loop(duration=duration).resize(0.75)
 
