@@ -339,7 +339,7 @@ def ease_out_back(t, c1=1.70158, c3=None):
     if c3 is None: c3 = c1 + 1
     return 1 + c3 * pow(t - 1, 3) + c1 * pow(t - 1, 2)
 
-def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, headline_text3, duration: int = 7, resolution=(1080, 1920), learn_more = "Learn More Now"):
+def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, headline_text3, duration: int = 7, resolution=(1080, 1920), learn_more = "Learn More Now", is_arrow = True):
     logging.info(f"--- Creating Facebook Ad visuals with background: {bg_img_path} ---")
     st.write("MoviePy: Creating video visuals...")
     fps = 30
@@ -640,7 +640,8 @@ def generate_single_video(
     voice_id: str,
     openai_client: OpenAI,
     anthropic_api_key: str,
-    s3_config: dict
+    s3_config: dict,
+    is_arrow = True
 ):
     logging.info(f"--- Starting video generation for topic: '{video_topic}', lang: '{language}', voice: '{voice_id}' ---")
     st.info(f"Processing: {video_topic} ({language}, voice: {voice_id})")
@@ -771,7 +772,8 @@ def generate_single_video(
         video_visuals_clip_obj = create_facebook_ad_new(
             bg_img_path=bg_image_for_video_path, # Can be None
             headline_text1=headline_text1, headline_text2=headline_text2, headline_text3=headline_text3,
-            duration=video_duration_final, learn_more=learn_more_text
+            duration=video_duration_final, learn_more=learn_more_text,
+            is_arrow = is_arrow
         )
 
         if not video_visuals_clip_obj:
@@ -861,7 +863,7 @@ def run_streamlit_app():
         if uploaded_file:
             try:
                 input_df = pd.read_csv(uploaded_file)
-                required_cols = ['topic', 'count', 'language', 'voice']
+                required_cols = ['topic', 'count', 'language', 'voice' , 'is_arrow']
                 if not all(col in input_df.columns for col in required_cols):
                     st.error(f"CSV must contain columns: {', '.join(required_cols)}")
                     input_df = None # Invalidate df
@@ -879,7 +881,7 @@ def run_streamlit_app():
     else: # Manual Input
         if 'manual_df' not in st.session_state:
             st.session_state.manual_df = pd.DataFrame([
-                {"topic": "Eco-Friendly Homes","language": "English", "count": 1,  "voice": "sage"}
+                {"topic": "Eco-Friendly Homes","language": "English", "count": 1,  "voice": "sage", "is_arrow" : True}
                 
             ])
         
@@ -897,7 +899,8 @@ def run_streamlit_app():
                     options=["alloy", "echo", "fable", "onyx", "nova", "shimmer", # OpenAI standard
                              "sage", "redneck", "announcer", "announcer uk"], # Custom mapped
                     required=True
-                )
+                ),
+                "is_arrow" :st.column_config.SelectboxColumn("Show arrow", options=[True , False])
             }
         )
         st.session_state.manual_df = edited_df
@@ -924,7 +927,7 @@ def run_streamlit_app():
             return
         
         # Final validation of manual input df (drop fully empty rows if any)
-        input_df.dropna(subset=['topic', 'language', 'voice'], how='all', inplace=True)
+        input_df.dropna(subset=['topic', 'language', 'voice' ,'is_arrow'], how='all', inplace=True)
         input_df = input_df[input_df['topic'].astype(str).str.strip() != ''] # Remove rows with empty topic
         input_df['count'] = pd.to_numeric(input_df['count'], errors='coerce').fillna(1).astype(int)
         input_df = input_df[input_df['count'] > 0]
@@ -957,6 +960,7 @@ def run_streamlit_app():
                 count_val = int(row['count'])
                 lang_val = str(row['language'])
                 voice_val = str(row['voice'])
+                is_arrow = row['arrow']
 
                 st.markdown(f"Processing: **{topic_val}** ({lang_val}) - {count_val} video(s) with voice '{voice_val}'")
                 
@@ -970,7 +974,8 @@ def run_streamlit_app():
                     video_url = generate_single_video(
                         video_topic=topic_val, language=lang_val, voice_id=voice_val,
                         openai_client=openai_client, anthropic_api_key=current_anthropic_api_key,
-                        s3_config=s3_config
+                        s3_config=s3_config,
+                        is_arrow = is_arrow
                     )
                     video_urls_for_current_row.append(video_url if video_url else "FAILED")
                     videos_completed_count += 1
