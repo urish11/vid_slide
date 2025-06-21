@@ -565,7 +565,7 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
             # arrows_overlay = arrows_overlay.rotate(-90, apply_to='mask')
             arrows_overlay = arrows_overlay.loop(duration=duration).resize(0.75)
 
-            arrows_overlay = arrows_overlay.set_position((final_arrow_x, final_arrow_y )).set_start(duration-3.5)
+            arrows_overlay = arrows_overlay.set_position((final_arrow_x, final_arrow_y )).set_start(6.5)
  
         # arrows_overlay = (
         #                     mp.VideoFileClip("arrows_2.mov", has_mask=True)
