@@ -16,9 +16,7 @@ import json
 import math
 from collections.abc import Callable
 import boto3
-from io import BytesIO # Not directly used for video file upload, but good S3 utility
 import random
-import os
 if not hasattr(Image, 'ANTIALIAS'):
     Image.ANTIALIAS = Image.Resampling.LANCZOS
 st.set_page_config(layout="wide", page_title="Vid Slide Gen",page_icon="🎦")
@@ -347,7 +345,6 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
     global arrows_overlay  
     logging.info(f"--- Creating Facebook Ad visuals with background: {bg_img_path} ---")
     st.write("MoviePy: Creating video visuals...")
-    fps = 30
     frame_width, frame_height = resolution[0], resolution[1]
     final_clip = None
     background_clip_obj = None
@@ -611,6 +608,83 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
         pass
 
 
+def create_facebook_ad_v2(bg_img_path: str, headline_text1, headline_text2, headline_text3, duration: int = 7, resolution=(1080, 1920), learn_more="Learn More Now", is_arrow=True):
+    """Variant with more eye-catching animations."""
+    global arrows_overlay
+    logging.info(f"--- Creating Facebook Ad V2 visuals with background: {bg_img_path} ---")
+    st.write("MoviePy: Creating v2 video visuals...")
+
+    frame_width, frame_height = resolution
+
+    if bg_img_path and os.path.exists(bg_img_path):
+        base_bg = mp.ImageClip(bg_img_path)
+    else:
+        base_bg = mp.ColorClip(size=resolution, color=(0, 0, 0), duration=duration)
+
+    zoomed = base_bg.resize(lambda t: 1.1 - 0.1 * (t / duration))
+    background_final = zoomed.fx(mp.vfx.crop, width=frame_width, height=frame_height,
+                                 x_center=lambda t: frame_width / 2 + 40 * np.sin(t / duration * 2 * np.pi),
+                                 y_center=lambda t: frame_height / 2 + 40 * np.cos(t / duration * 2 * np.pi))
+
+    text_color = 'yellow'
+    text_clip1_obj = rounded_bg_text_pillow(headline_text1, font_filename="boogaloo.ttf", fontsize=90,
+                                            text_color=text_color, bg_color=(0, 0, 0, 220), radius=50,
+                                            pad_x=50, pad_y=25, duration=duration)
+    text_clip2_obj = rounded_bg_text_pillow(headline_text2, font_filename="boogaloo.ttf", fontsize=90,
+                                            text_color=text_color, bg_color=(0, 0, 0, 220), radius=50,
+                                            pad_x=50, pad_y=25, duration=duration)
+    text_clip3_obj = rounded_bg_text_pillow(headline_text3, font_filename="boogaloo.ttf", fontsize=90,
+                                            text_color=text_color, bg_color=(0, 0, 0, 220), radius=50,
+                                            pad_x=50, pad_y=25, duration=duration)
+
+    text_clip1_final_y = frame_height * 0.15
+    text_clip2_final_y = text_clip1_final_y + text_clip1_obj.h + 25
+    text_clip3_final_y = text_clip2_final_y + text_clip2_obj.h + 25
+
+    def slide_pos(start_x, start_y, final_x, final_y, start_t, total_t):
+        def _pos(t):
+            if t < start_t:
+                return (start_x, start_y)
+            elif t > start_t + total_t:
+                return (final_x, final_y)
+            progress = (t - start_t) / total_t
+            eased = ease_out_back(progress)
+            return (start_x + (final_x - start_x) * eased, start_y + (final_y - start_y) * eased)
+        return _pos
+
+    text_clip1_obj = text_clip1_obj.set_position(slide_pos(frame_width, -text_clip1_obj.h,
+                                                           (frame_width - text_clip1_obj.w) / 2, text_clip1_final_y, 0.2, 0.6))
+    text_clip2_obj = text_clip2_obj.set_position(slide_pos(-text_clip2_obj.w, text_clip2_final_y,
+                                                           (frame_width - text_clip2_obj.w) / 2, text_clip2_final_y, 0.7, 0.6))
+    text_clip3_obj = text_clip3_obj.set_position(slide_pos(frame_width, text_clip3_final_y,
+                                                           (frame_width - text_clip3_obj.w) / 2, text_clip3_final_y, 1.3, 0.6))
+
+    button_clip_obj = rounded_bg_text_pillow(learn_more, font_filename="boogaloo.ttf", fontsize=65,
+                                             text_color="white", bg_color=(0, 0, 200), radius=40,
+                                             pad_x=60, pad_y=25, duration=duration)
+    button_final_y = frame_height * 0.7
+
+    def pulse_size(t):
+        base = 1.0 + 0.05 * np.sin(t * 2 * np.pi)
+        return base
+
+    button_clip_obj = button_clip_obj.resize(lambda t: pulse_size(t)).set_position(
+        ('center', button_final_y)).fadein(0.5, initial_color=None)
+
+    overlays = [background_final, text_clip1_obj, text_clip2_obj, text_clip3_obj, button_clip_obj]
+
+    if is_arrow:
+        if arrows_overlay is None:
+            arrows_overlay = mp.VideoFileClip("arrows_2_4.mov", has_mask=True)
+        arrow_clip = arrows_overlay.loop(duration=duration).resize(0.75)
+        arrow_clip = arrow_clip.set_start(2).set_position((int(0.35 * frame_width), int(0.5 * frame_height))).fadein(0.5)
+        overlays.append(arrow_clip)
+
+    final_clip = mp.CompositeVideoClip(overlays, size=resolution).set_duration(duration)
+    st.write("MoviePy: V2 visuals composed.")
+    return final_clip
+
+
 # --- S3 Upload Function for Video ---
 def upload_video_file_to_s3(
     file_path: str,
@@ -655,7 +729,8 @@ def generate_single_video(
     openai_client: OpenAI,
     anthropic_api_key: str,
     s3_config: dict,
-    is_arrow = True
+    is_arrow = True,
+    use_v2: bool = False
 ):
     logging.info(f"--- Starting video generation for topic: '{video_topic}', lang: '{language}', voice: '{voice_id}' ---")
     st.info(f"Processing: {video_topic} ({language}, voice: {voice_id})")
@@ -783,12 +858,20 @@ def generate_single_video(
             temp_video_file_path = temp_video_file_obj.name
         # temp_video_file_obj is closed here, path is retained
 
-        video_visuals_clip_obj = create_facebook_ad_new(
-            bg_img_path=bg_image_for_video_path, # Can be None
-            headline_text1=headline_text1, headline_text2=headline_text2, headline_text3=headline_text3,
-            duration=video_duration_final, learn_more=learn_more_text,
-            is_arrow = is_arrow
-        )
+        if use_v2:
+            video_visuals_clip_obj = create_facebook_ad_v2(
+                bg_img_path=bg_image_for_video_path,
+                headline_text1=headline_text1, headline_text2=headline_text2, headline_text3=headline_text3,
+                duration=video_duration_final, learn_more=learn_more_text,
+                is_arrow=is_arrow
+            )
+        else:
+            video_visuals_clip_obj = create_facebook_ad_new(
+                bg_img_path=bg_image_for_video_path,
+                headline_text1=headline_text1, headline_text2=headline_text2, headline_text3=headline_text3,
+                duration=video_duration_final, learn_more=learn_more_text,
+                is_arrow=is_arrow
+            )
 
         if not video_visuals_clip_obj:
             st.error(f"MoviePy: Failed to create video visuals for {video_topic}. Skipping this video.")
@@ -920,6 +1003,8 @@ def run_streamlit_app():
         st.session_state.manual_df = edited_df
         input_df = edited_df.copy()
 
+    use_v2 = st.checkbox("Use V2 animations", value=True)
+
 
     if st.button("🚀 Generate Videos", type="primary", disabled=(input_df is None or input_df.empty)):
         # Retrieve latest values from session state
@@ -991,7 +1076,8 @@ def run_streamlit_app():
                         video_topic=topic_val, language=lang_val, voice_id=voice_val,
                         openai_client=openai_client, anthropic_api_key=current_anthropic_api_key,
                         s3_config=s3_config,
-                        is_arrow = is_arrow
+                        is_arrow=is_arrow,
+                        use_v2=use_v2
                     )
                     video_urls_for_current_row.append(video_url if video_url else "FAILED")
                     videos_completed_count += 1
