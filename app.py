@@ -817,7 +817,7 @@ def generate_single_video(
             try:    
                 final_video_clip_to_write_obj.write_videofile(
                     temp_video_file_path, fps=30, codec='libx264', audio_codec='aac',
-                    preset='ultrafast', bitrate = '1700k', threads=4, logger=None # 'bar' or None
+                    preset='medium',  threads=4, logger=None # 'bar' or None
                 )
                 st.write(f"MoviePy: Video file for '{video_topic}' written locally.")
                 break
