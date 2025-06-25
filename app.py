@@ -622,9 +622,16 @@ def create_facebook_ad_v2(bg_img_path: str, headline_text1, headline_text2, head
         base_bg = mp.ColorClip(size=resolution, color=(0, 0, 0), duration=duration)
 
     zoomed = base_bg.resize(lambda t: 1.1 - 0.1 * (t / duration))
-    background_final = zoomed.fx(mp.vfx.crop, width=frame_width, height=frame_height,
-                                 x_center=lambda t: frame_width / 2 + 40 * np.sin(t / duration * 2 * np.pi),
-                                 y_center=lambda t: frame_height / 2 + 40 * np.cos(t / duration * 2 * np.pi))
+
+    # Pan the slightly zoomed image within the frame for subtle motion.
+    def pan_pos(t):
+        return (
+            -40 * np.sin(t / duration * 2 * np.pi),
+            -40 * np.cos(t / duration * 2 * np.pi)
+        )
+
+    moving_bg = zoomed.set_position(pan_pos)
+    background_final = mp.CompositeVideoClip([moving_bg], size=resolution).set_duration(duration)
 
     text_color = 'yellow'
     text_clip1_obj = rounded_bg_text_pillow(headline_text1, font_filename="boogaloo.ttf", fontsize=90,
