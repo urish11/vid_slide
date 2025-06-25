@@ -560,13 +560,7 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
 
         #### Arrow overlay
         if is_arrow and arrows_overlay is None :
-            read_arrow_count = 0 
-            while read_arrow_count < 10 :
-                st.text(f"read_arrow_count {read_arrow_count}")
-                try:
-                    arrows_overlay = mp.VideoFileClip("arrows_2_4.mov",has_mask=True)
-                    break
-                except:read_arrow_count += 1
+            arrows_overlay = mp.VideoFileClip("arrows_2_4.mov",has_mask=True)
             st.write("Duration:", arrows_overlay.duration)
             st.write("Has mask?", arrows_overlay.mask is not None)
             # arrows_overlay = arrows_overlay.set_mask(
@@ -818,11 +812,18 @@ def generate_single_video(
 
         # 8. Write the final video to a temporary local file
         st.write(f"MoviePy: Writing video file for '{video_topic}'...")
-        final_video_clip_to_write_obj.write_videofile(
-            temp_video_file_path, fps=30, codec='libx264', audio_codec='aac',
-            preset='medium', threads=4, logger=None # 'bar' or None
-        )
-        st.write(f"MoviePy: Video file for '{video_topic}' written locally.")
+        write_count = 0
+        while write_count < 10 :
+            try:    
+                final_video_clip_to_write_obj.write_videofile(
+                    temp_video_file_path, fps=30, codec='libx264', audio_codec='aac',
+                    preset='medium', threads=4, logger=None # 'bar' or None
+                )
+                st.write(f"MoviePy: Video file for '{video_topic}' written locally.")
+                break
+            except: 
+                st.text(f'failed write_videofile {int(write_count)}')
+                write_count += 1 
 
         # 9. Upload video to S3
         if os.path.exists(temp_video_file_path) and os.path.getsize(temp_video_file_path) > 0:
