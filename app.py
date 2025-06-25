@@ -560,7 +560,13 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
 
         #### Arrow overlay
         if is_arrow and arrows_overlay is None :
-            arrows_overlay = mp.VideoFileClip("arrows_2_4.mov",has_mask=True)
+            read_arrow_count = 0 
+            while read_arrow_count < 10 :
+                st.text(f"read_arrow_count {read_arrow_count}")
+                try:
+                    arrows_overlay = mp.VideoFileClip("arrows_2_4.mov",has_mask=True)
+                    break
+                except:read_arrow_count += 1
             st.write("Duration:", arrows_overlay.duration)
             st.write("Has mask?", arrows_overlay.mask is not None)
             # arrows_overlay = arrows_overlay.set_mask(
