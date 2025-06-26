@@ -771,7 +771,7 @@ def generate_single_video(
             st.warning(f"No narration script for '{video_topic}' ({language}). Video will be silent.")
 
         # 5. Generate Video Captions (Claude, with language)
-        caption_prompt = f"""write a json with text to be shown as caption on video (the captions complete a sentence togther) not overly promising! dont make up info, for topic article about {video_topic} in language:{language} , must be 3 captions , each 2 words, for high ctr in like this format, not over sensetional and dont make big promises! : """ + """{'caption1' : 'BAD CREDIT?' ,'caption2' : 'RV OWNERSHIP' ,'caption3' : 'STILL POSSIBLE!'  }
+        caption_prompt = f"""write a json with text to be shown as caption on video (the captions complete a sentence togther) not overly promising , dont use 'Limited Time' 'Last Spots' etc!!! dont make up info, for topic article about {video_topic} in language:{language} , must be 3 captions , each 2 words, for high ctr in like this format, not over sensetional and dont make big promises! : """ + """{'caption1' : 'BAD CREDIT?' ,'caption2' : 'RV OWNERSHIP' ,'caption3' : 'STILL POSSIBLE!'  }
                                          return JUST the json
 """
         captions_json_str = generate_text_with_claude(
