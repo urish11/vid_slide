@@ -20,7 +20,8 @@ from io import BytesIO # Not directly used for video file upload, but good S3 ut
 import random
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-
+from datetime import datetime
+from zoneinfo import ZoneInfo
 import os
 if not hasattr(Image, 'ANTIALIAS'):
     Image.ANTIALIAS = Image.Resampling.LANCZOS
@@ -59,6 +60,7 @@ def on_queue_update(update):
 def google_sheets_append_df(spreadsheet_id,range_name, df_data_input ):
     # Load credentials from Streamlit secrets
     credentials_dict = st.secrets["gcp_service_account"]
+    # st.text(credentials_dict)
     creds = service_account.Credentials.from_service_account_info(
         credentials_dict,
         scopes=["https://www.googleapis.com/auth/spreadsheets"]
@@ -66,8 +68,12 @@ def google_sheets_append_df(spreadsheet_id,range_name, df_data_input ):
 
 
     service = build("sheets", "v4", credentials=creds)
-    
-    body = {"values": df_data_input.values.tolist()}
+    time_now = [datetime.now(ZoneInfo("Asia/Jerusalem")).strftime("%Y-%m-%d %H:%M")]
+    df_list = df_data_input.values.tolist()
+    for idx in range(len(df_list)):
+        df_list[idx] = time_now + df_list[idx]
+        
+    body = {"values": df_list}
     try:
         # Append the row
         result = service.spreadsheets().values().append(
