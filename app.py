@@ -18,6 +18,9 @@ from collections.abc import Callable
 import boto3
 from io import BytesIO # Not directly used for video file upload, but good S3 utility
 import random
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+
 import os
 if not hasattr(Image, 'ANTIALIAS'):
     Image.ANTIALIAS = Image.Resampling.LANCZOS
@@ -51,6 +54,33 @@ def on_queue_update(update):
             logging.info(f"[FalClient Log] {log['message']}")
             # st.sidebar.text(f"[Fal Log] {log['message']}") # Optional: log to sidebar
 
+
+
+def google_sheets_append_df(spreadsheet_id,range_name, df_data_input ):
+    # Load credentials from Streamlit secrets
+    credentials_dict = st.secrets["gcp_service_account"]
+    creds = service_account.Credentials.from_service_account_info(
+        credentials_dict,
+        scopes=["https://www.googleapis.com/auth/spreadsheets"]
+    )
+
+
+    service = build("sheets", "v4", credentials=creds)
+    
+    body = {"values": df_data_input.values.tolist()}
+    try:
+        # Append the row
+        result = service.spreadsheets().values().append(
+            spreadsheetId=spreadsheet_id,
+            range=range_name,
+            valueInputOption="RAW",
+            insertDataOption="INSERT_ROWS",
+            body=body
+        ).execute()
+
+        st.success(f"Row added: {result['updates']['updatedRange']}")
+    except Exception as e:
+        st.text(f"error google_sheets_append_row:  {e}")
 # --- Image Downloader ---
 def download_image(image_url: str, save_path: str) -> bool:
     """Downloads an image from a URL and saves it locally."""
@@ -1028,6 +1058,7 @@ def run_streamlit_app():
             st.success("✅ Video generation process completed!")
             st.header("🎞️ Generated Video URLs")
             st.dataframe(results_df)
+            google_sheets_append_df("13TOgYTYpVV0ysvKqufS2Q5RDdgTP097x1hH_eMtCL4w","vid_slide!A1",results_df  )
 
             csv_export = results_df.to_csv(index=False).encode('utf-8')
             st.download_button(
