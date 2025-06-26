@@ -9,3 +9,5 @@ Pillow
 moviepy==1.0.3
 boto3
 requests
+google
+google-api-python-client
