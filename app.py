@@ -27,9 +27,6 @@ if not hasattr(Image, 'ANTIALIAS'):
     Image.ANTIALIAS = Image.Resampling.LANCZOS
 st.set_page_config(layout="wide", page_title="Vid Slide Gen",page_icon="🎦")
 
-global arrows_overlay
-arrows_overlay = None
-
 
 # --- Configuration for Logging ---
 # Streamlit typically handles its own logging display.
@@ -380,7 +377,6 @@ def ease_out_back(t, c1=1.70158, c3=None):
     return 1 + c3 * pow(t - 1, 3) + c1 * pow(t - 1, 2)
 
 def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, headline_text3, duration: int = 7, resolution=(1080, 1920), learn_more = "Learn More Now", is_arrow = True):
-    global arrows_overlay  
     logging.info(f"--- Creating Facebook Ad visuals with background: {bg_img_path} ---")
     st.write("MoviePy: Creating video visuals...")
     fps = 30
@@ -595,33 +591,14 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
 
 
         #### Arrow overlay
-        if is_arrow and arrows_overlay is None :
-            arrows_overlay = mp.VideoFileClip("arrows_2_4.mov",has_mask=True)
-            st.write("Duration:", arrows_overlay.duration)
-            st.write("Has mask?", arrows_overlay.mask is not None)
-            # arrows_overlay = arrows_overlay.set_mask(
-            # arrows_overlay.mask.fx(lambda m: m.to_ImageClip().fl_image(lambda img: (img > 0.95).astype(float))))
+        composite_list = [background_final, text_clip1_obj, text_clip2_obj, text_clip3_obj, button_clip_obj]
+        if is_arrow:
             final_arrow_y = int(0.5 * resolution[1])
             final_arrow_x = int(0.335 * resolution[0])
-            # arrows_overlay = arrows_overlay.rotate(-90, apply_to='mask')
-            arrows_overlay = arrows_overlay.loop(duration=duration).resize(0.75)
-
-            arrows_overlay = arrows_overlay.set_position((final_arrow_x, final_arrow_y )).set_start(6.5)
- 
-        # arrows_overlay = (
-        #                     mp.VideoFileClip("arrows_2.mov", has_mask=True)
-        #                     .rotate(-90)
-        #                     .resize(width=0.07 * 1280)
-        #                     .loop(duration=duration)
-        #                     .set_position(("center", int(0.78 * resolution[1])))
-        #                     .set_start(3))
-        #                      # .set_mask(lambda: arrows_overlay.mask.fl_image(lambda img: (img > 0.95).astype(float)))
-
-
-
-        composite_list = [background_final, text_clip1_obj, text_clip2_obj, text_clip3_obj, button_clip_obj]
-        if is_arrow : 
-            composite_list += [arrows_overlay]
+            arrow_clip = mp.VideoFileClip("arrows_2_4.mov", has_mask=True)
+            arrow_clip = arrow_clip.loop(duration=duration).resize(0.75)
+            arrow_clip = arrow_clip.set_position((final_arrow_x, final_arrow_y)).set_start(6.5)
+            composite_list.append(arrow_clip)
 
 
         final_clip = mp.CompositeVideoClip(
