@@ -10,7 +10,7 @@ import logging
 import time
 import requests # For downloading the image
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import moviepy.editor as mp
 import json
 import math
@@ -624,6 +624,483 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
         pass
 
 
+# ===========================================================================================
+# NEW UNIVERSAL VIDEO GENERATION FUNCTIONS
+# ===========================================================================================
+
+def slight_rotation(clip, max_angle=3):
+    """Subtle rotation that adds dynamism"""
+    def apply_rotation(get_frame, t):
+        angle = max_angle * np.sin(2 * np.pi * t / clip.duration / 2)  # Slow rotation
+        img = Image.fromarray(get_frame(t))
+        rotated = img.rotate(angle, expand=0, fillcolor=(0, 0, 0))
+        return np.array(rotated)
+    return clip.fl(apply_rotation)
+
+def breathing_effect(clip, scale_range=(1.0, 1.05), period=4):
+    """Scale in/out subtly like breathing"""
+    def apply_breathing(get_frame, t):
+        scale = scale_range[0] + (scale_range[1] - scale_range[0]) * (0.5 + 0.5 * np.sin(2 * np.pi * t / period))
+        img = Image.fromarray(get_frame(t))
+        new_size = (int(img.width * scale), int(img.height * scale))
+        scaled = img.resize(new_size, Image.Resampling.LANCZOS)
+        # Crop to original size from center
+        left = (scaled.width - img.width) // 2
+        top = (scaled.height - img.height) // 2
+        cropped = scaled.crop((left, top, left + img.width, top + img.height))
+        return np.array(cropped)
+    return clip.fl(apply_breathing)
+
+def add_vignette(clip, intensity=0.3):
+    """Add vignette effect for focus"""
+    w, h = clip.size
+    # Create vignette overlay
+    vignette_img = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(vignette_img)
+    
+    # Create radial gradient
+    for i in range(min(w, h) // 2):
+        alpha = int(255 * intensity * (i / (min(w, h) / 2)) ** 2)
+        draw.ellipse([i, i, w-i, h-i], fill=(0, 0, 0, alpha))
+    
+    vignette_array = np.array(vignette_img)
+    vignette_clip = mp.ImageClip(vignette_array, ismask=False, transparent=True).set_duration(clip.duration)
+    
+    return mp.CompositeVideoClip([clip, vignette_clip])
+
+def enhance_contrast(clip, factor=1.15):
+    """Enhance contrast for better visual pop"""
+    def apply_contrast(get_frame, t):
+        img = Image.fromarray(get_frame(t))
+        from PIL import ImageEnhance
+        enhancer = ImageEnhance.Contrast(img)
+        enhanced = enhancer.enhance(factor)
+        return np.array(enhanced)
+    return clip.fl(apply_contrast)
+
+def create_animated_text_universal(text, fontsize=80, color='yellow', bg_color=(0,0,0,220), 
+                                 animation_style='slide_elastic', delay=0, duration=7):
+    """Create animated text with various entrance styles"""
+    # Create the text clip using the existing rounded_bg_text_pillow function
+    text_clip = rounded_bg_text_pillow(
+        text, 
+        font_filename="boogaloo.ttf", 
+        fontsize=fontsize, 
+        text_color=color, 
+        bg_color=bg_color, 
+        radius=40, 
+        pad_x=35, 
+        pad_y=20, 
+        duration=duration
+    )
+    
+    # Apply entrance animation based on style
+    if animation_style == 'slide_elastic':
+        # Slide in from left with elastic bounce
+        def animate(t):
+            if t < delay:
+                return (-text_clip.w, 'center')
+            progress = min(1, (t - delay) / 0.7)
+            x = -text_clip.w + (text_clip.w + 1920/2 - text_clip.w/2) * elastic_out(progress)
+            return (x, 'center')
+        text_clip = text_clip.set_position(animate)
+        
+    elif animation_style == 'fade_scale':
+        # Fade in with scale up
+        def animate_opacity(t):
+            if t < delay:
+                return 0
+            progress = min(1, (t - delay) / 0.5)
+            return progress
+        
+        def animate_scale(t):
+            if t < delay:
+                return (1, 1)
+            progress = min(1, (t - delay) / 0.5)
+            scale = 0.5 + 0.5 * progress
+            return (int(text_clip.w * scale), int(text_clip.h * scale))
+            
+        text_clip = text_clip.set_opacity(animate_opacity).resize(animate_scale).set_position('center')
+        
+    elif animation_style == 'rotate_bounce':
+        # Rotate in with bounce
+        def animate_rotation(t):
+            if t < delay:
+                return -180
+            progress = min(1, (t - delay) / 0.8)
+            return -180 + 180 * ease_out_back(progress)
+            
+        text_clip = text_clip.rotate(animate_rotation).set_position('center')
+    
+    return text_clip
+
+def create_animated_pointer(style='modern_arrow', entrance_time=5, target_y=1200, duration=7):
+    """Create animated pointing element"""
+    # Create a simple arrow using PIL
+    arrow_size = (150, 150)
+    arrow_img = Image.new('RGBA', arrow_size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(arrow_img)
+    
+    # Draw arrow shape
+    arrow_points = [(75, 20), (120, 65), (95, 65), (95, 130), (55, 130), (55, 65), (30, 65)]
+    draw.polygon(arrow_points, fill=(255, 255, 0, 255), outline=(0, 0, 0, 255), width=3)
+    
+    arrow_array = np.array(arrow_img)
+    arrow_clip = mp.ImageClip(arrow_array, transparent=True).set_duration(duration - entrance_time)
+    
+    # Animate entrance and movement
+    def animate_arrow(t):
+        actual_t = t + entrance_time
+        if actual_t < entrance_time:
+            return (1920, target_y)  # Off screen
+        
+        # Bounce in from right
+        progress = min(1, (actual_t - entrance_time) / 0.5)
+        x = 1920 - (1920 - 1200) * ease_out_back(progress)
+        
+        # Add subtle bounce movement
+        bounce = 10 * np.sin(4 * np.pi * (actual_t - entrance_time))
+        
+        return (x, target_y + bounce)
+    
+    arrow_clip = arrow_clip.set_position(animate_arrow).set_start(entrance_time)
+    return arrow_clip
+
+def create_universal_cta(text="Learn More", color='yellow', bg_color=(0, 0, 200, 255), 
+                        position='bottom_center', animation='pulse_glow', duration=7):
+    """Create universal CTA button with animations"""
+    # Create button using rounded_bg_text_pillow
+    button_clip = rounded_bg_text_pillow(
+        text,
+        font_filename="boogaloo.ttf",
+        fontsize=65,
+        text_color=color,
+        bg_color=bg_color,
+        radius=35,
+        pad_x=45,
+        pad_y=25,
+        duration=duration
+    )
+    
+    # Position mapping
+    if position == 'bottom_center':
+        button_y = 1920 * 0.7 - button_clip.h / 2
+    else:
+        button_y = 1920 * 0.65
+    
+    # Apply animation
+    if animation == 'pulse_glow':
+        def animate_size(t):
+            if t < 3:  # Start pulsing after 3 seconds
+                return (button_clip.w, button_clip.h)
+            pulse = 1 + 0.08 * np.sin(4 * np.pi * (t - 3))
+            return (int(button_clip.w * pulse), int(button_clip.h * pulse))
+        
+        button_clip = button_clip.resize(animate_size)
+    
+    button_clip = button_clip.set_position(('center', button_y))
+    return button_clip
+
+def create_animated_overlay(style='gradient_sweep', opacity=0.15, duration=7):
+    """Create animated overlay effects"""
+    w, h = 1080, 1920
+    
+    if style == 'gradient_sweep':
+        # Create gradient that sweeps across
+        def make_frame(t):
+            img = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+            
+            # Moving gradient position
+            progress = (t / duration) % 1
+            x_pos = int(w * progress)
+            
+            # Draw gradient
+            for x in range(max(0, x_pos - 200), min(w, x_pos + 200)):
+                alpha = int(255 * opacity * (1 - abs(x - x_pos) / 200))
+                draw.line([(x, 0), (x, h)], fill=(255, 255, 255, alpha))
+            
+            return np.array(img)
+        
+        overlay_clip = mp.VideoClip(make_frame, duration=duration)
+        return overlay_clip
+    
+    return None
+
+def create_particle_burst(trigger_time=2, position='center', duration=1, total_duration=7):
+    """Create particle burst effect at specific time"""
+    w, h = 1080, 1920
+    particle_count = 20
+    
+    if position == 'center':
+        x_center, y_center = w // 2, h // 2
+    else:
+        x_center, y_center = position
+    
+    def make_frame(t):
+        if t < trigger_time or t > trigger_time + duration:
+            return np.zeros((h, w, 4), dtype=np.uint8)
+        
+        progress = (t - trigger_time) / duration
+        img = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        
+        for i in range(particle_count):
+            angle = (i / particle_count) * 2 * np.pi
+            distance = progress * 300
+            x = x_center + int(distance * np.cos(angle))
+            y = y_center + int(distance * np.sin(angle))
+            
+            size = int(10 * (1 - progress))
+            opacity = int(255 * (1 - progress))
+            
+            if size > 0:
+                draw.ellipse([x-size, y-size, x+size, y+size], 
+                           fill=(255, 255, 0, opacity))
+        
+        return np.array(img)
+    
+    particle_clip = mp.VideoClip(make_frame, duration=total_duration)
+    return particle_clip
+
+def smart_text_break(topic, max_words=3):
+    """Intelligently break text for impact"""
+    words = topic.split()
+    
+    # If already 3 or fewer words, return as is
+    if len(words) <= max_words:
+        return words
+    
+    # Priority keywords that should be kept together
+    priority_pairs = ['how to', 'want to', 'need to', 'used to', 'going to']
+    
+    # Check for priority pairs
+    text_lower = topic.lower()
+    for pair in priority_pairs:
+        if pair in text_lower:
+            # Keep the pair together and split the rest
+            pair_words = pair.split()
+            remaining = topic.lower().replace(pair, '').strip().split()
+            if len(remaining) > 0:
+                return pair_words + [remaining[0]]
+            return pair_words
+    
+    # Otherwise, take first 3 words with some intelligence
+    # Prioritize keeping numbers with their context
+    result = []
+    i = 0
+    while len(result) < max_words and i < len(words):
+        word = words[i]
+        result.append(word)
+        
+        # If current word is a number and next word exists, include it
+        if i + 1 < len(words) and any(char.isdigit() for char in word):
+            result.append(words[i + 1])
+            i += 1
+        
+        i += 1
+    
+    return result[:max_words]
+
+def create_high_ctr_universal_video(
+    topic: str,
+    image_path: str,
+    narration: str,
+    language: str,
+    voice_id: str,
+    openai_client,
+    learn_more_text: str = "Learn More",
+    duration: float = 7,
+    resolution=(1080, 1920)
+):
+    """
+    Universal video generator optimized for CTR
+    Works with ANY topic
+    """
+    logging.info(f"--- Creating universal high-CTR video for topic: '{topic}' ---")
+    st.write("Creating universal engaging video...")
+    
+    try:
+        # 1. Background with universal appeal effects
+        if image_path and os.path.exists(image_path):
+            bg_clip = mp.ImageClip(image_path).set_duration(duration)
+        else:
+            # Fallback gradient background
+            logging.warning("No background image provided, using gradient")
+            bg_clip = mp.ColorClip(size=resolution, color=(20, 20, 50), duration=duration)
+        
+        # Ensure background fits resolution
+        clip_aspect = bg_clip.w / bg_clip.h
+        frame_aspect = resolution[0] / resolution[1]
+        
+        if clip_aspect > frame_aspect:
+            bg_clip = bg_clip.resize(height=resolution[1])
+        else:
+            bg_clip = bg_clip.resize(width=resolution[0])
+        
+        bg_clip = bg_clip.crop(
+            x_center=bg_clip.w / 2,
+            y_center=bg_clip.h / 2,
+            width=resolution[0],
+            height=resolution[1]
+        )
+        
+        # Apply compound background effects
+        effects_to_apply = [
+            ('zoom', lambda c: zoom_effect(c, ratio=0.035)),
+            ('rotation', lambda c: slight_rotation(c, max_angle=2)),
+            ('breathing', lambda c: breathing_effect(c, scale_range=(1.0, 1.03), period=5)),
+        ]
+        
+        # Randomly select 2 effects for variety
+        selected_effects = random.sample(effects_to_apply, 2)
+        
+        bg_final = bg_clip
+        for effect_name, effect_func in selected_effects:
+            logging.info(f"Applying {effect_name} effect to background")
+            bg_final = effect_func(bg_final)
+        
+        # Always apply vignette and contrast
+        bg_final = add_vignette(bg_final, intensity=0.3)
+        bg_final = enhance_contrast(bg_final, factor=1.15)
+        
+        # 2. Text with universal engagement patterns
+        text_elements = []
+        
+        # Smart text breaking
+        words = smart_text_break(topic, max_words=3)
+        
+        # Different animation styles for each word
+        animation_styles = ['slide_elastic', 'fade_scale', 'rotate_bounce']
+        
+        # Calculate vertical spacing
+        base_y = resolution[1] * 0.2
+        spacing = 120
+        
+        for i, word in enumerate(words):
+            # Scale font size based on word importance
+            if any(char.isdigit() for char in word) or word.lower() in ['free', 'new', 'best', 'top']:
+                fontsize = 95
+            else:
+                fontsize = 85
+            
+            text_clip = create_animated_text_universal(
+                word.upper(),
+                fontsize=fontsize,
+                color='yellow',
+                bg_color=(0, 0, 0, 200),
+                animation_style=animation_styles[i % len(animation_styles)],
+                delay=0.5 + i * 0.3,
+                duration=duration
+            )
+            
+            # Position vertically
+            text_y = base_y + i * spacing
+            
+            # For non-sliding animations, set vertical position
+            if animation_styles[i % len(animation_styles)] != 'slide_elastic':
+                text_clip = text_clip.set_position(('center', text_y))
+            else:
+                # Sliding animation handles its own positioning
+                def make_slide_position(final_y):
+                    def animate(t):
+                        if t < 0.5 + i * 0.3:
+                            return (-text_clip.w, final_y)
+                        progress = min(1, (t - (0.5 + i * 0.3)) / 0.7)
+                        x = -text_clip.w + (text_clip.w + resolution[0]/2 - text_clip.w/2) * elastic_out(progress)
+                        # Add floating after settle
+                        if t > 2.5:
+                            float_offset = 5 * np.sin(2 * np.pi * (t - 2.5) / 3)
+                            return (x, final_y + float_offset)
+                        return (x, final_y)
+                    return animate
+                text_clip = text_clip.set_position(make_slide_position(text_y))
+            
+            text_elements.append(text_clip)
+        
+        # 3. Universal attention grabbers
+        attention_elements = []
+        
+        # Animated pointer (appears later)
+        if duration > 5:
+            pointer = create_animated_pointer(
+                style='modern_arrow',
+                entrance_time=duration * 0.75,
+                target_y=resolution[1] * 0.7,
+                duration=duration
+            )
+            attention_elements.append(pointer)
+        
+        # CTA button
+        cta_button = create_universal_cta(
+            text=learn_more_text,
+            color='white',
+            bg_color=(0, 100, 255, 255),
+            position='bottom_center',
+            animation='pulse_glow',
+            duration=duration
+        )
+        attention_elements.append(cta_button)
+        
+        # 4. Enhancement layers
+        enhancement_layers = []
+        
+        # Animated overlay
+        overlay = create_animated_overlay(
+            style='gradient_sweep',
+            opacity=0.1,
+            duration=duration
+        )
+        if overlay:
+            enhancement_layers.append(overlay)
+        
+        # Particle bursts at key moments
+        particle_times = [1.5, duration * 0.6]
+        for p_time in particle_times:
+            if p_time < duration:
+                particles = create_particle_burst(
+                    trigger_time=p_time,
+                    position='center',
+                    duration=0.5,
+                    total_duration=duration
+                )
+                enhancement_layers.append(particles)
+        
+        # 5. Compose everything
+        all_clips = [bg_final] + enhancement_layers + text_elements + attention_elements
+        
+        final_composition = mp.CompositeVideoClip(
+            all_clips,
+            size=resolution
+        ).set_duration(duration)
+        
+        # 6. Add audio if provided
+        if narration:
+            audio_path = generate_audio_with_timestamps(narration, openai_client, voice_id)
+            if audio_path and os.path.exists(audio_path):
+                audio_clip = mp.AudioFileClip(audio_path)
+                final_composition = final_composition.set_duration(audio_clip.duration).set_audio(audio_clip)
+                audio_clip.close()
+                # Clean up audio file
+                try:
+                    os.remove(audio_path)
+                except:
+                    pass
+        
+        logging.info("Universal video composition complete")
+        return final_composition
+        
+    except Exception as e:
+        logging.error(f"Error in create_high_ctr_universal_video: {e}", exc_info=True)
+        st.error(f"Error creating universal video: {e}")
+        return None
+
+
+# ===========================================================================================
+# END NEW UNIVERSAL VIDEO GENERATION FUNCTIONS
+# ===========================================================================================
+
+
 # --- S3 Upload Function for Video ---
 def upload_video_file_to_s3(
     file_path: str,
@@ -668,10 +1145,11 @@ def generate_single_video(
     openai_client: OpenAI,
     anthropic_api_key: str,
     s3_config: dict,
-    is_arrow = True
+    is_arrow = True,
+    use_universal_style: bool = False
 ):
-    logging.info(f"--- Starting video generation for topic: '{video_topic}', lang: '{language}', voice: '{voice_id}' ---")
-    st.info(f"Processing: {video_topic} ({language}, voice: {voice_id})")
+    logging.info(f"--- Starting video generation for topic: '{video_topic}', lang: '{language}', voice: '{voice_id}', universal: {use_universal_style} ---")
+    st.info(f"Processing: {video_topic} ({language}, voice: {voice_id}, style: {'universal' if use_universal_style else 'classic'})")
     
     temp_video_file_path = None
     temp_bg_image_path = None
@@ -688,22 +1166,22 @@ def generate_single_video(
         image_prompt_generation_prompt = f"write engaging image prompt for " + video_topic + "make sure to extract the visual aspect of the topic, that can convice people to click and show the positive most direct benefit (negate any non tangible aspect of the topic) make it look really good and attractive. ideally show a real life scenario people can relate.. like for 'bank repossessed cars' show a lot of cars in a lot and people around them. no overlay text on image!!! NO  TEXT ON IMAGE!!!"
 
 #         image_prompt_generation_prompt = (
-#     f"""Craft a SINGLE, vivid image-generation prompt for the topic: “{video_topic}”.
+#     f"""Craft a SINGLE, vivid image-generation prompt for the topic: "{video_topic}".
 
 # Your goal: an irresistible thumbnail that **stops the scroll** and sparks immediate curiosity.
 
 # 🏆  Must-have ingredients
-# 1. **Big visual payoff** – show the *tangible* benefit or “after” moment in action.
+# 1. **Big visual payoff** – show the *tangible* benefit or "after" moment in action.
 # 2. **Human hook** – include at least one real person with a clear facial emotion  
 #    (amazement, satisfaction, discovery) pointing, gazing, or reacting to the scene.
 # 3. **Tension & reveal** – frame the shot so the subject feels *mid-action* or partially
-#    hidden, hinting there’s more to see if the viewer clicks.
+#    hidden, hinting there's more to see if the viewer clicks.
 # 4. **Photorealistic, candid** – smartphone-style authenticity, natural lighting, slight imperfections.
 # 5. **Color pop** – one strong accent color (clothing, object, sign) that draws the eye.
 # 6. **NO text, watermarks, logos, filters, AI artifacts, or studio lighting.**
 
 # End your prompt with these exact tags (for the diffusion model):
-# “photorealistic, candid, unstaged, natural lighting, dynamic composition, shallow depth of field, no text on image, no logos, no watermark.”
+# "photorealistic, candid, unstaged, natural lighting, dynamic composition, shallow depth of field, no text on image, no logos, no watermark."
 # """
 # )
 
@@ -747,38 +1225,12 @@ def generate_single_video(
         else:
             st.warning(f"No narration script for '{video_topic}' ({language}). Video will be silent.")
 
-        # 5. Generate Video Captions (Claude, with language)
-        caption_prompt = f"""write a json with text to be shown as caption on video (the captions complete a sentence togther) not overly promising , dont use 'Limited Time' 'Last Spots' etc!!! dont make up info, for topic article about {video_topic} in language:{language} , must be 3 captions , each 2 words, for high ctr in like this format, not over sensetional and dont make big promises! : """ + """{'caption1' : 'BAD CREDIT?' ,'caption2' : 'RV OWNERSHIP' ,'caption3' : 'STILL POSSIBLE!'  }
-                                         return JUST the json
-"""
-        captions_json_str = generate_text_with_claude(
-            prompt=caption_prompt, anthropic_api_key=anthropic_api_key,model = "claude-3-7-sonnet-latest" # Haiku is good for structured JSON
-        )
-        captions_data = {}
-        if captions_json_str:
-            try:
-                json_start = captions_json_str.find('{')
-                json_end = captions_json_str.rfind('}') + 1
-                if json_start != -1 and json_end > json_start:
-                    captions_data = json.loads(captions_json_str[json_start:json_end])
-                else: raise ValueError("No JSON object delimiters found.")
-            except Exception as e: # Catches JSONDecodeError and ValueError
-                logging.error(f"Failed to parse/find captions JSON for '{video_topic}' ({language}): {e}. Response: {captions_json_str}")
-                st.warning(f"Could not parse captions for '{video_topic}' ({language}). Using defaults.")
-        
-        default_captions_map = {
-            "English": {"c1": "INTERESTED?", "c2": video_topic[:15].upper(), "c3": "SEE HOW!"},
-            "Spanish": {"c1": "¿INTERESADO?", "c2": video_topic[:15].upper(), "c3": "¡DESCUBRE!"},
-            # Add more languages as needed
-        }
-        default_lang_captions = default_captions_map.get(language, default_captions_map["English"])
-        headline_text1 = captions_data.get("caption1", default_lang_captions["c1"]).upper()
-        headline_text2 = captions_data.get("caption2", default_lang_captions["c2"]).upper()
-        headline_text3 = captions_data.get("caption3", default_lang_captions["c3"]).upper()
-
-
-
-        learn_more_text = generate_text_with_claude(f"""write 'Learn More Now' in {language}, return just the text1!!!""" ,anthropic_api_key=anthropic_api_key, model="claude-3-7-sonnet-20250219" ).replace("'","").replace('"',"")
+        # Get learn more text in the specified language
+        learn_more_text = generate_text_with_claude(
+            f"""write 'Learn More Now' in {language}, return just the text1!!!""",
+            anthropic_api_key=anthropic_api_key, 
+            model="claude-3-7-sonnet-20250219"
+        ).replace("'","").replace('"',"")
 
         # Determine video duration
         video_duration_final = 7  # Default if no audio
@@ -790,38 +1242,91 @@ def generate_single_video(
             except Exception as e:
                 logging.warning(f"Could not get audio duration for '{video_topic}': {e}. Using default {video_duration_final}s.")
                 st.warning(f"MoviePy: Could not read audio duration for {video_topic}. Using default.")
-        
-        # 6. Create Video Visuals (MoviePy)
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video_file_obj:
-            temp_video_file_path = temp_video_file_obj.name
-        # temp_video_file_obj is closed here, path is retained
 
-        video_visuals_clip_obj = create_facebook_ad_new(
-            bg_img_path=bg_image_for_video_path, # Can be None
-            headline_text1=headline_text1, headline_text2=headline_text2, headline_text3=headline_text3,
-            duration=video_duration_final, learn_more=learn_more_text,
-            is_arrow = is_arrow
-        )
-
-        if not video_visuals_clip_obj:
-            st.error(f"MoviePy: Failed to create video visuals for {video_topic}. Skipping this video.")
-            raise Exception("Visuals creation failed.") # Propagate to finally for cleanup
-
-        # 7. Combine Video Visuals with TTS Audio
-        final_video_clip_to_write_obj = video_visuals_clip_obj # Default to visuals only
-        if tts_audio_file_path_local and os.path.exists(tts_audio_file_path_local):
-            try:
-                tts_audio_clip_obj = mp.AudioFileClip(tts_audio_file_path_local)
-                # Match video duration to audio clip's duration
-                final_video_clip_to_write_obj = video_visuals_clip_obj.set_duration(tts_audio_clip_obj.duration).set_audio(tts_audio_clip_obj)
-                logging.info(f"TTS audio track added to video '{video_topic}'. Duration: {tts_audio_clip_obj.duration:.2f}s.")
-            except Exception as e:
-                logging.error(f"Error adding audio to video '{video_topic}': {e}. Proceeding with visuals only (if possible).")
-                st.warning(f"MoviePy: Error adding audio for {video_topic}. Video might be silent or use visual's duration.")
-                # Visuals_clip already has a duration, so it can be used as is.
-        else: # No audio or audio failed
-             final_video_clip_to_write_obj = video_visuals_clip_obj.set_duration(video_duration_final)
-
+        # Create video using selected style
+        if use_universal_style:
+            # Use new universal video creation
+            st.write("Using Universal High-CTR video style...")
+            
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video_file_obj:
+                temp_video_file_path = temp_video_file_obj.name
+            
+            video_visuals_clip_obj = create_high_ctr_universal_video(
+                topic=video_topic,
+                image_path=bg_image_for_video_path,
+                narration=narration_script_text if narration_script_text else "",
+                language=language,
+                voice_id=voice_id,
+                openai_client=openai_client,
+                learn_more_text=learn_more_text,
+                duration=video_duration_final
+            )
+            
+            # Universal video already includes audio, so we'll use it directly
+            final_video_clip_to_write_obj = video_visuals_clip_obj
+            
+        else:
+            # Use original video creation method
+            st.write("Using Classic video style...")
+            
+            # 5. Generate Video Captions (Claude, with language)
+            caption_prompt = f"""write a json with text to be shown as caption on video (the captions complete a sentence togther) not overly promising , dont use 'Limited Time' 'Last Spots' etc!!! dont make up info, for topic article about {video_topic} in language:{language} , must be 3 captions , each 2 words, for high ctr in like this format, not over sensetional and dont make big promises! : """ + """{'caption1' : 'BAD CREDIT?' ,'caption2' : 'RV OWNERSHIP' ,'caption3' : 'STILL POSSIBLE!'  }
+                                             return JUST the json
+    """
+            captions_json_str = generate_text_with_claude(
+                prompt=caption_prompt, anthropic_api_key=anthropic_api_key,model = "claude-3-7-sonnet-latest" # Haiku is good for structured JSON
+            )
+            captions_data = {}
+            if captions_json_str:
+                try:
+                    json_start = captions_json_str.find('{')
+                    json_end = captions_json_str.rfind('}') + 1
+                    if json_start != -1 and json_end > json_start:
+                        captions_data = json.loads(captions_json_str[json_start:json_end])
+                    else: raise ValueError("No JSON object delimiters found.")
+                except Exception as e: # Catches JSONDecodeError and ValueError
+                    logging.error(f"Failed to parse/find captions JSON for '{video_topic}' ({language}): {e}. Response: {captions_json_str}")
+                    st.warning(f"Could not parse captions for '{video_topic}' ({language}). Using defaults.")
+            
+            default_captions_map = {
+                "English": {"c1": "INTERESTED?", "c2": video_topic[:15].upper(), "c3": "SEE HOW!"},
+                "Spanish": {"c1": "¿INTERESADO?", "c2": video_topic[:15].upper(), "c3": "¡DESCUBRE!"},
+                # Add more languages as needed
+            }
+            default_lang_captions = default_captions_map.get(language, default_captions_map["English"])
+            headline_text1 = captions_data.get("caption1", default_lang_captions["c1"]).upper()
+            headline_text2 = captions_data.get("caption2", default_lang_captions["c2"]).upper()
+            headline_text3 = captions_data.get("caption3", default_lang_captions["c3"]).upper()
+            
+            # 6. Create Video Visuals (MoviePy)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video_file_obj:
+                temp_video_file_path = temp_video_file_obj.name
+            
+            video_visuals_clip_obj = create_facebook_ad_new(
+                bg_img_path=bg_image_for_video_path, # Can be None
+                headline_text1=headline_text1, headline_text2=headline_text2, headline_text3=headline_text3,
+                duration=video_duration_final, learn_more=learn_more_text,
+                is_arrow = is_arrow
+            )
+            
+            if not video_visuals_clip_obj:
+                st.error(f"MoviePy: Failed to create video visuals for {video_topic}. Skipping this video.")
+                raise Exception("Visuals creation failed.") # Propagate to finally for cleanup
+            
+            # 7. Combine Video Visuals with TTS Audio
+            final_video_clip_to_write_obj = video_visuals_clip_obj # Default to visuals only
+            if tts_audio_file_path_local and os.path.exists(tts_audio_file_path_local):
+                try:
+                    tts_audio_clip_obj = mp.AudioFileClip(tts_audio_file_path_local)
+                    # Match video duration to audio clip's duration
+                    final_video_clip_to_write_obj = video_visuals_clip_obj.set_duration(tts_audio_clip_obj.duration).set_audio(tts_audio_clip_obj)
+                    logging.info(f"TTS audio track added to video '{video_topic}'. Duration: {tts_audio_clip_obj.duration:.2f}s.")
+                except Exception as e:
+                    logging.error(f"Error adding audio to video '{video_topic}': {e}. Proceeding with visuals only (if possible).")
+                    st.warning(f"MoviePy: Error adding audio for {video_topic}. Video might be silent or use visual's duration.")
+                    # Visuals_clip already has a duration, so it can be used as is.
+            else: # No audio or audio failed
+                 final_video_clip_to_write_obj = video_visuals_clip_obj.set_duration(video_duration_final)
 
         # 8. Write the final video to a temporary local file
         st.write(f"MoviePy: Writing video file for '{video_topic}'...")
@@ -879,7 +1384,18 @@ def run_streamlit_app():
     # st.markdown("Automate the creation of short video ads with AI-generated content and visuals.")
 
     # Sidebar for configurations
- 
+    with st.sidebar:
+        st.header("⚙️ Video Style Settings")
+        use_universal_style = st.checkbox(
+            "🎨 Use Universal High-CTR Style", 
+            value=False,
+            help="Enable the new universal video generation style with enhanced effects and animations"
+        )
+        
+        if use_universal_style:
+            st.info("✨ Universal style features:\n- Dynamic background effects\n- Smart text animations\n- Particle effects\n- Enhanced visual appeal")
+        else:
+            st.info("📺 Classic style features:\n- Standard text slides\n- Simple animations\n- Optional arrow overlay")
    
         
 
@@ -1011,7 +1527,8 @@ def run_streamlit_app():
                         video_topic=topic_val, language=lang_val, voice_id=voice_val,
                         openai_client=openai_client, anthropic_api_key=current_anthropic_api_key,
                         s3_config=s3_config,
-                        is_arrow = is_arrow
+                        is_arrow = is_arrow,
+                        use_universal_style=use_universal_style
                     )
                     video_urls_for_current_row.append(video_url if video_url else "FAILED")
                     videos_completed_count += 1
