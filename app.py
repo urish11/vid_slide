@@ -630,26 +630,19 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
 
 def slight_rotation(clip, max_angle=3):
     """Subtle rotation that adds dynamism"""
-    def apply_rotation(get_frame, t):
-        angle = max_angle * np.sin(2 * np.pi * t / clip.duration / 2)  # Slow rotation
-        img = Image.fromarray(get_frame(t))
-        rotated = img.rotate(angle, expand=0, fillcolor=(0, 0, 0))
-        return np.array(rotated)
-    return clip.fl(apply_rotation)
+    def rotate_func(t):
+        angle = max_angle * np.sin(2 * np.pi * t / clip.duration / 2)
+        return angle
+    
+    return clip.rotate(rotate_func)
 
 def breathing_effect(clip, scale_range=(1.0, 1.05), period=4):
     """Scale in/out subtly like breathing"""
-    def apply_breathing(get_frame, t):
+    def scale_func(t):
         scale = scale_range[0] + (scale_range[1] - scale_range[0]) * (0.5 + 0.5 * np.sin(2 * np.pi * t / period))
-        img = Image.fromarray(get_frame(t))
-        new_size = (int(img.width * scale), int(img.height * scale))
-        scaled = img.resize(new_size, Image.Resampling.LANCZOS)
-        # Crop to original size from center
-        left = (scaled.width - img.width) // 2
-        top = (scaled.height - img.height) // 2
-        cropped = scaled.crop((left, top, left + img.width, top + img.height))
-        return np.array(cropped)
-    return clip.fl(apply_breathing)
+        return scale
+    
+    return clip.resize(scale_func)
 
 def add_vignette(clip, intensity=0.3):
     """Add vignette effect for focus"""
@@ -715,10 +708,10 @@ def create_animated_text_universal(text, fontsize=80, color='yellow', bg_color=(
         
         def animate_scale(t):
             if t < delay:
-                return (1, 1)
+                return 0.5
             progress = min(1, (t - delay) / 0.5)
             scale = 0.5 + 0.5 * progress
-            return (int(text_clip.w * scale), int(text_clip.h * scale))
+            return scale
             
         text_clip = text_clip.set_opacity(animate_opacity).resize(animate_scale).set_position('center')
         
@@ -733,6 +726,7 @@ def create_animated_text_universal(text, fontsize=80, color='yellow', bg_color=(
         text_clip = text_clip.rotate(animate_rotation).set_position('center')
     
     return text_clip
+
 
 def create_animated_pointer(style='modern_arrow', entrance_time=5, target_y=1200, duration=7):
     """Create animated pointing element"""
@@ -946,21 +940,17 @@ def create_high_ctr_universal_video(
         )
         
         # Apply compound background effects
-        effects_to_apply = [
-            ('zoom', lambda c: zoom_effect(c, ratio=0.035)),
-            ('rotation', lambda c: slight_rotation(c, max_angle=2)),
-            ('breathing', lambda c: breathing_effect(c, scale_range=(1.0, 1.03), period=5)),
-        ]
-        
-        # Randomly select 2 effects for variety
-        selected_effects = random.sample(effects_to_apply, 2)
-        
         bg_final = bg_clip
-        for effect_name, effect_func in selected_effects:
-            logging.info(f"Applying {effect_name} effect to background")
-            bg_final = effect_func(bg_final)
         
-        # Always apply vignette and contrast
+        # Apply zoom effect (already working)
+        bg_final = zoom_effect(bg_final, ratio=0.035)
+        
+        # Apply slight rotation
+        def rotation_func(t):
+            return 2 * np.sin(2 * np.pi * t / duration / 2)
+        bg_final = bg_final.rotate(rotation_func)
+        
+        # Apply vignette and contrast
         bg_final = add_vignette(bg_final, intensity=0.3)
         bg_final = enhance_contrast(bg_final, factor=1.15)
         
