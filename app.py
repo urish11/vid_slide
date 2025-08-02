@@ -773,7 +773,7 @@ def generate_single_video(
 
     elif format == "video": 
         try :
-            image_prompt_generation_prompt = f"Write a video from for a shot of someone that shows off {video_topic}. So he's like showing it off to the camera recommending it for 5 seconds. Describe. Only what you seen by a camera. no speech, trying to tell to people thru camera .make it look candid like user gen content. pick the charachter showing off to be appropriate to the topic"
+            image_prompt_generation_prompt = f"Write a video from for a shot of someone that shows off {video_topic}. So he's like showing it off to the camera recommending it for 5 seconds. Describe. Only what you seen by a camera. no speech, trying to tell to people thru camera to the camera .make it look candid like user gen content. pick the charachter showing off to be appropriate to the topic"
 
             video_prompt_for_fal = generate_text_with_claude(
                     prompt=image_prompt_generation_prompt,
