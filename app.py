@@ -184,7 +184,7 @@ def generate_fal_video(full_prompt: str): # Changed 'topic' to 'full_prompt'
         logging.info(f"Fal video generation result: {result}")
         if result and 'video' in result and len(result['video']) > 0:
             st.write("Fal: Video generated.")
-            return result['video'][0]
+            return result['video']
         else:
             logging.error("No video data found in Fal result.")
             st.warning("Fal: No video data returned.")
