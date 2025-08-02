@@ -773,7 +773,7 @@ def generate_single_video(
 
     elif format == "video": 
         try :
-            image_prompt_generation_prompt = f"Write a video from for a shot of someone that shows off {video_topic}. So he's like showing it off to the camera recommending it for 5 seconds. Describe. Only what you seen by a camera. no speech, trying to tell to people thru camera to the camera .make it look candid like user gen content. pick the charachter showing off to be appropriate to the topic"
+            image_prompt_generation_prompt = f"Write a video from for a shot of someone that shows off {video_topic}. So he's like showing it off to the camera recommending it for 5 seconds. Describe Only what you seen by a camera. no speech, trying to tell to people thru camera to the camera directly! .make it look candid like user gen content. pick the charachter showing off to be appropriate to the topic"
 
             video_prompt_for_fal = generate_text_with_claude(
                     prompt=image_prompt_generation_prompt,
@@ -787,7 +787,7 @@ def generate_single_video(
             fal_image_info = generate_fal_video(full_prompt=video_prompt_for_fal)
             bg_image_for_video_path = None
             if fal_image_info and 'url' in fal_image_info:
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_img_file:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp_img_file:
                     temp_bg_image_path = tmp_img_file.name
                 if download_image(fal_image_info['url'], temp_bg_image_path):
                     bg_image_for_video_path = temp_bg_image_path
