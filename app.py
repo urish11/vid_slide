@@ -999,7 +999,7 @@ def run_streamlit_app():
                     required=True
                 ),
                 "is_arrow" :st.column_config.SelectboxColumn("Show arrow", options=[True , False, "Random"]),
-                "format" :st.column_config.SelectboxColumn("format", options=["image", "video"])
+                "format" :st.column_config.SelectboxColumn("format", options=["image", "video", "Random"])
                 
             }
         )
@@ -1064,8 +1064,9 @@ def run_streamlit_app():
                 format = row["format"]
 
                 if is_arrow == "Random": is_arrow = random.choice([True,False])
+                if format == "Random": is_arrow = random.choice(["image", "video"])
 
-                st.markdown(f"Processing: **{topic_val}** ({lang_val}) - {count_val} video(s) with voice '{voice_val}'")
+                st.markdown(f"Processing: **{topic_val}** ({lang_val}) - {count_val} {format}  video(s) with voice '{voice_val}'")
                 
                 video_urls_for_current_row = []
                 for i in range(count_val):
