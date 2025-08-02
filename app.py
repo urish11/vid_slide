@@ -999,7 +999,7 @@ def run_streamlit_app():
                     required=True
                 ),
                 "is_arrow" :st.column_config.SelectboxColumn("Show arrow", options=[True , False, "Random"]),
-                "format" :st.column_config.SelectboxColumn("Show arrow", options=["image", "video"])
+                "format" :st.column_config.SelectboxColumn("format", options=["image", "video"])
                 
             }
         )
