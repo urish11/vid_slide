@@ -423,20 +423,18 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
                     background_clip_obj = mp.ImageClip(bg_img_path)
                     background_clip_obj = zoom_effect(background_clip_obj, 0.035)
             
-                elif ".mp4" in bg_img_path in bg_img_path:
+                elif ".mp4" in bg_img_path:
                     background_clip_obj = mp.VideoFileClip(bg_img_path)
-                    # background_clip_obj = loop(background_clip_obj, duration) 
-
-                    mp.concatenate_videoclips(
-                        [background_clip_obj] + [background_clip_obj.crossfadein(1) for _ in range(int(duration / (background_clip_obj.duration - 1)))],
-                        method="compose",
-                        padding=-1
-                    ).subclip(0, duration).write_videofile("temp_loop.mp4", fps=24)
-
+                    # Proper crossfade loop logic
+                    loop_count = max(2, int(duration // (background_clip_obj.duration - 1)))
+                    clips = [background_clip_obj.copy() for _ in range(loop_count)]
+                    for i in range(1, len(clips)):
+                        clips[i] = clips[i].crossfadein(1)
+                    looped_clip = mp.concatenate_videoclips(clips, method="compose", padding=-1)
+                    looped_clip = looped_clip.subclip(0, duration)
+                    looped_clip.write_videofile("temp_loop.mp4", fps=24)
                     background_clip_obj = mp.VideoFileClip("temp_loop.mp4")
-
                     background_clip_obj = background_clip_obj.fx(mp.vfx.speedx, 0.8)
-
             except Exception as e:
                 logging.error(f"Error loading background image '{bg_img_path}': {e}")
                 st.warning(f"MoviePy: Error loading background image '{os.path.basename(bg_img_path)}'. Using black fallback.")
