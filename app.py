@@ -181,16 +181,16 @@ def generate_fal_video(full_prompt: str): # Changed 'topic' to 'full_prompt'
             with_logs=True, # Set to False to reduce console noise if preferred
             on_queue_update=on_queue_update
         )
-        logging.info(f"Fal image generation result: {result}")
-        if result and 'images' in result and len(result['images']) > 0:
-            st.write("Fal: Image generated.")
+        logging.info(f"Fal video generation result: {result}")
+        if result and 'video' in result and len(result['video']) > 0:
+            st.write("Fal: Video generated.")
             return result['images'][0]
         else:
-            logging.error("No image data found in Fal result.")
-            st.warning("Fal: No image data returned.")
+            logging.error("No video data found in Fal result.")
+            st.warning("Fal: No video data returned.")
             return None
     except Exception as e:
-        logging.error(f"Error during Fal image generation: {e}")
+        logging.error(f"Error during Fal video generation: {e}")
         st.error(f"Fal Error: {e}")
         return None
 
