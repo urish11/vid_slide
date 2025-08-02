@@ -425,7 +425,13 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
             
                 elif ".mp4" in bg_img_path in bg_img_path:
                     background_clip_obj = mp.VideoFileClip(bg_img_path)
-                    background_clip_obj = loop(background_clip_obj, duration) 
+                    # background_clip_obj = loop(background_clip_obj, duration) 
+                    background_clip_obj = mp.concatenate_videoclips(
+                    [background_clip_obj] + [background_clip_obj.crossfadein(1) for _ in range(int(duration / (background_clip_obj.duration - 1)))],
+                    method="compose",
+                    padding=-1
+                ).subclip(0, duration)
+
                     background_clip_obj = background_clip_obj.fx(mp.vfx.speedx, 0.8)
 
             except Exception as e:
