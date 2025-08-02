@@ -12,6 +12,7 @@ import requests # For downloading the image
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 import moviepy.editor as mp
+from moviepy.video.fx.all import loop
 import json
 import math
 from collections.abc import Callable
@@ -418,8 +419,14 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
     try:
         if bg_img_path and os.path.exists(bg_img_path):
             try:
-                background_clip_obj = mp.ImageClip(bg_img_path)
-                background_clip_obj = zoom_effect(background_clip_obj, 0.035)
+                if ".jpg" in bg_img_path or ".jpeg" in bg_img_path:
+                    background_clip_obj = mp.ImageClip(bg_img_path)
+                    background_clip_obj = zoom_effect(background_clip_obj, 0.035)
+            
+                elif ".mp4" in bg_img_path in bg_img_path:
+                    background_clip_obj = mp.VideoFileClip(bg_img_path)
+                    background_clip_obj = loop(background_clip_obj, duration) 
+
             except Exception as e:
                 logging.error(f"Error loading background image '{bg_img_path}': {e}")
                 st.warning(f"MoviePy: Error loading background image '{os.path.basename(bg_img_path)}'. Using black fallback.")
