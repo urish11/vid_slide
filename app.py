@@ -162,6 +162,36 @@ def generate_fal_image(full_prompt: str): # Changed 'topic' to 'full_prompt'
         logging.error(f"Error during Fal image generation: {e}")
         st.error(f"Fal Error: {e}")
         return None
+    
+def generate_fal_video(full_prompt: str): # Changed 'topic' to 'full_prompt'
+    logging.info(f"--- Requesting video from Fal with prompt: {full_prompt[:100]}... ---")
+    st.write(f"Fal: Generating video for prompt: {full_prompt[:150]}...")
+    try:
+        result = fal_client.subscribe(
+            "fal-ai/wan/v2.2-a14b/text-to-video/turbo", # Using a potentially faster/cheaper model as an example
+            # "rundiffusion-fal/juggernaut-flux/lightning", # Original model
+            arguments={
+                "prompt": full_prompt, # Use the full prompt directly
+                "aspect_ratio": "9:16", # Or "square_hd" / "landscape_16_9"
+                "resolution": "480p", 
+           
+                "enable_safety_checker": False
+            },
+            with_logs=True, # Set to False to reduce console noise if preferred
+            on_queue_update=on_queue_update
+        )
+        logging.info(f"Fal image generation result: {result}")
+        if result and 'images' in result and len(result['images']) > 0:
+            st.write("Fal: Image generated.")
+            return result['images'][0]
+        else:
+            logging.error("No image data found in Fal result.")
+            st.warning("Fal: No image data returned.")
+            return None
+    except Exception as e:
+        logging.error(f"Error during Fal image generation: {e}")
+        st.error(f"Fal Error: {e}")
+        return None
 
 # --- 2. Text Generation with Claude ---
 def generate_text_with_claude(prompt: str, anthropic_api_key: str, model: str = "claude-sonnet-4-20250514", temperature: float = 0.88, max_retries: int = 3): # claude-3-opus-20240229, claude-3-sonnet-20240229, claude-3-haiku-20240307
@@ -668,7 +698,8 @@ def generate_single_video(
     openai_client: OpenAI,
     anthropic_api_key: str,
     s3_config: dict,
-    is_arrow = True
+    is_arrow = True,
+    format = "image"
 ):
     logging.info(f"--- Starting video generation for topic: '{video_topic}', lang: '{language}', voice: '{voice_id}' ---")
     st.info(f"Processing: {video_topic} ({language}, voice: {voice_id})")
@@ -682,54 +713,87 @@ def generate_single_video(
     video_visuals_clip_obj = None
     tts_audio_clip_obj = None
     final_video_clip_to_write_obj = None
+    if format == "image":
+        try:
+            # 1. Generate Image Prompt (using Claude)
+            image_prompt_generation_prompt = f"write engaging image prompt for " + video_topic + "make sure to extract the visual aspect of the topic, that can convice people to click and show the positive most direct benefit (negate any non tangible aspect of the topic) make it look really good and attractive. ideally show a real life scenario people can relate.. like for 'bank repossessed cars' show a lot of cars in a lot and people around them. no overlay text on image!!! NO  TEXT ON IMAGE!!!"
+
+    #         image_prompt_generation_prompt = (
+    #     f"""Craft a SINGLE, vivid image-generation prompt for the topic: “{video_topic}”.
+
+    # Your goal: an irresistible thumbnail that **stops the scroll** and sparks immediate curiosity.
+
+    # 🏆  Must-have ingredients
+    # 1. **Big visual payoff** – show the *tangible* benefit or “after” moment in action.
+    # 2. **Human hook** – include at least one real person with a clear facial emotion  
+    #    (amazement, satisfaction, discovery) pointing, gazing, or reacting to the scene.
+    # 3. **Tension & reveal** – frame the shot so the subject feels *mid-action* or partially
+    #    hidden, hinting there’s more to see if the viewer clicks.
+    # 4. **Photorealistic, candid** – smartphone-style authenticity, natural lighting, slight imperfections.
+    # 5. **Color pop** – one strong accent color (clothing, object, sign) that draws the eye.
+    # 6. **NO text, watermarks, logos, filters, AI artifacts, or studio lighting.**
+
+    # End your prompt with these exact tags (for the diffusion model):
+    # “photorealistic, candid, unstaged, natural lighting, dynamic composition, shallow depth of field, no text on image, no logos, no watermark.”
+    # """
+    # ) 
+ 
+            image_prompt_for_fal = generate_text_with_claude(
+                prompt=image_prompt_generation_prompt,
+                model = "claude-opus-4-20250514",
+                anthropic_api_key=anthropic_api_key
+            ) + "\n looks great\n photorealistic, candid unstaged"
+            if not image_prompt_for_fal:
+                st.warning(f"Could not generate image prompt for '{video_topic}'. Using topic as fallback.")
+                image_prompt_for_fal = f"{video_topic}, \n looks great\n photorealistic, candid unstaged" # Basic fallback
+
+            # 2. Generate and Download Background Image (Fal)
+            fal_image_info = generate_fal_image(full_prompt=image_prompt_for_fal)
+            bg_image_for_video_path = None
+            if fal_image_info and 'url' in fal_image_info:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_img_file:
+                    temp_bg_image_path = tmp_img_file.name
+                if download_image(fal_image_info['url'], temp_bg_image_path):
+                    bg_image_for_video_path = temp_bg_image_path
+                    st.image(bg_image_for_video_path)
+                else: # Download failed
+                    if os.path.exists(temp_bg_image_path): os.remove(temp_bg_image_path)
+                    temp_bg_image_path = None # Ensure it's None so fallback is used
+            # If bg_image_for_video_path is None, create_facebook_ad_new handles fallback
+        except Exception as e :
+            st.text(f"Error in Generate Image Prompt: {e}")
+        
+
+    elif format == "video": 
+        try :
+            image_prompt_generation_prompt = f"Write a video from for a shot of someone that shows off {video_topic}. So he's like showing it off to the camera recommending it for 5 seconds. Describe. Only what you seen by a camera. no speech, trying to tell to people thru camera .make it look candid like user gen content. pick the charachter showing off to be appropriate to the topic"
+
+            video_prompt_for_fal = generate_text_with_claude(
+                    prompt=image_prompt_generation_prompt,
+                    model = "claude-opus-4-20250514",
+                    anthropic_api_key=anthropic_api_key
+                ) + "\n looks great\n photorealistic, candid unstaged"
+            if not video_prompt_for_fal:
+                    st.warning(f"Could not generate image prompt for '{video_topic}'. Using topic as fallback.")
+                    video_prompt_for_fal = f"{video_topic}, \n looks great\n photorealistic, candid unstaged" # Basic fallback
+
+            fal_image_info = generate_fal_video(full_prompt=video_prompt_for_fal)
+            bg_image_for_video_path = None
+            if fal_image_info and 'url' in fal_image_info:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_img_file:
+                    temp_bg_image_path = tmp_img_file.name
+                if download_image(fal_image_info['url'], temp_bg_image_path):
+                    bg_image_for_video_path = temp_bg_image_path
+                    st.image(bg_image_for_video_path)
+                else: # Download failed
+                    if os.path.exists(temp_bg_image_path): os.remove(temp_bg_image_path)
+                    temp_bg_image_path = None # Ensure it's None so fallback is used
+
+        except Exception as e :
+            st.text(f"Error in Generate Video Prompt: {e}")
+
 
     try:
-        # 1. Generate Image Prompt (using Claude)
-        image_prompt_generation_prompt = f"write engaging image prompt for " + video_topic + "make sure to extract the visual aspect of the topic, that can convice people to click and show the positive most direct benefit (negate any non tangible aspect of the topic) make it look really good and attractive. ideally show a real life scenario people can relate.. like for 'bank repossessed cars' show a lot of cars in a lot and people around them. no overlay text on image!!! NO  TEXT ON IMAGE!!!"
-
-#         image_prompt_generation_prompt = (
-#     f"""Craft a SINGLE, vivid image-generation prompt for the topic: “{video_topic}”.
-
-# Your goal: an irresistible thumbnail that **stops the scroll** and sparks immediate curiosity.
-
-# 🏆  Must-have ingredients
-# 1. **Big visual payoff** – show the *tangible* benefit or “after” moment in action.
-# 2. **Human hook** – include at least one real person with a clear facial emotion  
-#    (amazement, satisfaction, discovery) pointing, gazing, or reacting to the scene.
-# 3. **Tension & reveal** – frame the shot so the subject feels *mid-action* or partially
-#    hidden, hinting there’s more to see if the viewer clicks.
-# 4. **Photorealistic, candid** – smartphone-style authenticity, natural lighting, slight imperfections.
-# 5. **Color pop** – one strong accent color (clothing, object, sign) that draws the eye.
-# 6. **NO text, watermarks, logos, filters, AI artifacts, or studio lighting.**
-
-# End your prompt with these exact tags (for the diffusion model):
-# “photorealistic, candid, unstaged, natural lighting, dynamic composition, shallow depth of field, no text on image, no logos, no watermark.”
-# """
-# )
-
-        image_prompt_for_fal = generate_text_with_claude(
-            prompt=image_prompt_generation_prompt,
-            model = "claude-opus-4-20250514",
-            anthropic_api_key=anthropic_api_key
-        ) + "\n looks great\n photorealistic, candid unstaged"
-        if not image_prompt_for_fal:
-            st.warning(f"Could not generate image prompt for '{video_topic}'. Using topic as fallback.")
-            image_prompt_for_fal = f"{video_topic}, \n looks great\n photorealistic, candid unstaged" # Basic fallback
-
-        # 2. Generate and Download Background Image (Fal)
-        fal_image_info = generate_fal_image(full_prompt=image_prompt_for_fal)
-        bg_image_for_video_path = None
-        if fal_image_info and 'url' in fal_image_info:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_img_file:
-                temp_bg_image_path = tmp_img_file.name
-            if download_image(fal_image_info['url'], temp_bg_image_path):
-                bg_image_for_video_path = temp_bg_image_path
-                st.image(bg_image_for_video_path)
-            else: # Download failed
-                if os.path.exists(temp_bg_image_path): os.remove(temp_bg_image_path)
-                temp_bg_image_path = None # Ensure it's None so fallback is used
-        # If bg_image_for_video_path is None, create_facebook_ad_new handles fallback
-
         # 3. Generate Narration Script Text using Claude (with language)
         narration_prompt = f"In {language}, Create a short, , and engaging narration script (about 1-2 sentences, around 8-10 seconds read time) for a Facebook video ad. dont use these or simillar: 'today' or 'limted time' 'x% off discount' or 'Apply Now' 'instant' 'in 1 minute' , dont use 'our' or 'we'.  for topic : {video_topic} ,.The narration should complement this, be encouraging, and invite viewers to learn more (use somethink like ...'Click now to ...'). dont make huge out there bombastic promises or too sensetional or use in the style of 'get approved' 'apply here' 'browse items...'  or make up info BUT still make people click and be cliffhangry. Ensure the script is entirely in {language}. \n  End with a strong convinsing  CTA in the likes of: 'Click to explore options or 'Tap to see how it works.' dont use 'to see models\what's available ... etc'   \nagain, do be sesetional, just a bit, and dont make up promises not provided as input" 
         narration_script_text = generate_text_with_claude(
@@ -915,7 +979,7 @@ def run_streamlit_app():
     else: # Manual Input
         if 'manual_df' not in st.session_state:
             st.session_state.manual_df = pd.DataFrame([
-                {"topic": "Eco-Friendly Homes","language": "English", "count": 1,  "voice": "sage", "is_arrow" : True}
+                {"topic": "Eco-Friendly Homes","language": "English", "count": 1,  "voice": "sage","format" : "image", "is_arrow" : True}
                 
             ])
         
@@ -934,7 +998,9 @@ def run_streamlit_app():
                              "sage", "redneck", "announcer", "announcer uk"], # Custom mapped
                     required=True
                 ),
-                "is_arrow" :st.column_config.SelectboxColumn("Show arrow", options=[True , False, "Random"])
+                "is_arrow" :st.column_config.SelectboxColumn("Show arrow", options=[True , False, "Random"]),
+                "format" :st.column_config.SelectboxColumn("Show arrow", options=["image", "video"])
+                
             }
         )
         st.session_state.manual_df = edited_df
@@ -995,6 +1061,7 @@ def run_streamlit_app():
                 lang_val = str(row['language'])
                 voice_val = str(row['voice'])
                 is_arrow = row['is_arrow']
+                format = row["format"]
 
                 if is_arrow == "Random": is_arrow = random.choice([True,False])
 
@@ -1011,7 +1078,8 @@ def run_streamlit_app():
                         video_topic=topic_val, language=lang_val, voice_id=voice_val,
                         openai_client=openai_client, anthropic_api_key=current_anthropic_api_key,
                         s3_config=s3_config,
-                        is_arrow = is_arrow
+                        is_arrow = is_arrow,
+                        format = format
                     )
                     video_urls_for_current_row.append(video_url if video_url else "FAILED")
                     videos_completed_count += 1
