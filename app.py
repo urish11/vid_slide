@@ -423,18 +423,11 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
                     background_clip_obj = mp.ImageClip(bg_img_path)
                     background_clip_obj = zoom_effect(background_clip_obj, 0.035)
             
-                elif ".mp4" in bg_img_path:
+                elif ".mp4" in bg_img_path in bg_img_path:
                     background_clip_obj = mp.VideoFileClip(bg_img_path)
-                    # Proper crossfade loop logic
-                    loop_count = max(2, int(duration // (background_clip_obj.duration - 1)))
-                    clips = [background_clip_obj.copy() for _ in range(loop_count)]
-                    for i in range(1, len(clips)):
-                        clips[i] = clips[i].crossfadein(1)
-                    looped_clip = mp.concatenate_videoclips(clips, method="compose", padding=-1)
-                    looped_clip = looped_clip.subclip(0, duration)
-                    looped_clip.write_videofile("temp_loop.mp4", fps=24)
-                    background_clip_obj = mp.VideoFileClip("temp_loop.mp4")
+                    background_clip_obj = loop(background_clip_obj, duration) 
                     background_clip_obj = background_clip_obj.fx(mp.vfx.speedx, 0.8)
+
             except Exception as e:
                 logging.error(f"Error loading background image '{bg_img_path}': {e}")
                 st.warning(f"MoviePy: Error loading background image '{os.path.basename(bg_img_path)}'. Using black fallback.")
@@ -781,7 +774,7 @@ def generate_single_video(
 
     elif format == "video": 
         try :
-            image_prompt_generation_prompt = f"Write a video from for a shot of someone that shows off {video_topic}. So he's like showing it off to the camera recommending it for 5 seconds. Describe Only what you seen by a camera. no speech, trying to tell to people thru  directly! .make it look candid like user gen content. pick the charachter showing off to be appropriate to the topic. keep the top third of the frame for text as Negative space. keep movment in the video low , not jumpy "
+            image_prompt_generation_prompt = f"Write a video from for a shot of someone that shows off {video_topic}, a rather luxurious  . So he's like showing it off to the camera recommending it for 5 seconds. Describe Only what you seen by a camera. no speech, trying to tell to people thru  directly! .make it look candid like user gen content. pick the charachter showing off to be appropriate to the topic. keep the top third of the frame for text as Negative space. keep movment in the video low , not jumpy "
             # image_prompt_generation_prompt = f"""Describe a single video shot of a person who is clearly showing off {video_topic} directly to the camera, as if enthusiastically recommending it to viewers without speaking. The person is facing the camera head-on, making eye contact, and presenting the item with their hands in front of them. It should feel like a candid, user-generated clip — casual lighting, natural background, unstaged, and realistic. Do not include smartphones unless the product itself is a phone. The person should be visually appropriate for the topic (e.g., age, gender, style). Only describe what the camera sees — no inner thoughts, no dialogue."""
 
 
