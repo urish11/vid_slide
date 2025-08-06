@@ -406,6 +406,50 @@ def elastic_out(t):
 def ease_out_back(t, c1=1.70158, c3=None):
     if c3 is None: c3 = c1 + 1
     return 1 + c3 * pow(t - 1, 3) + c1 * pow(t - 1, 2)
+    
+def create_smooth_crossfade_loop(clip, total_duration, crossfade_duration=0.5):
+    """
+    Creates a smooth crossfade loop for a video clip.
+    
+    Args:
+        clip: MoviePy VideoClip to loop
+        total_duration: Total duration for the looped video
+        crossfade_duration: Duration of the crossfade transition (default 0.5 seconds)
+    
+    Returns:
+        VideoClip with smooth crossfade loop
+    """
+    original_duration = clip.duration
+    
+    # If the clip is longer than needed, just trim it
+    if original_duration >= total_duration:
+        return clip.subclip(0, total_duration)
+    
+    # Calculate how many full loops we need
+    num_loops = int(total_duration / original_duration) + 1
+    
+    # Create individual clips for looping
+    clips_for_loop = []
+    
+    for i in range(num_loops):
+        start_time = i * (original_duration - crossfade_duration)
+        
+        # For the first clip, use the full duration
+        if i == 0:
+            loop_clip = clip.set_start(start_time)
+        else:
+            # For subsequent clips, add crossfade
+            loop_clip = clip.set_start(start_time).crossfadein(crossfade_duration)
+        
+        clips_for_loop.append(loop_clip)
+        
+        # Break if we've covered the total duration
+        if start_time + original_duration >= total_duration:
+            break
+    
+    # Composite all clips and trim to exact duration
+    final_clip = mp.CompositeVideoClip(clips_for_loop).subclip(0, total_duration)
+    return final_clip
 
 def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, headline_text3, duration: int = 7, resolution=(1080, 1920), learn_more = "Learn More Now", is_arrow = True):
     logging.info(f"--- Creating Facebook Ad visuals with background: {bg_img_path} ---")
@@ -425,7 +469,8 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
             
                 elif ".mp4" in bg_img_path in bg_img_path:
                     background_clip_obj = mp.VideoFileClip(bg_img_path)
-                    background_clip_obj = loop(background_clip_obj, duration) 
+                    # background_clip_obj = loop(background_clip_obj, duration) 
+                    background_clip_obj = create_smooth_crossfade_loop(background_clip_obj,duration)
                     background_clip_obj = background_clip_obj.fx(mp.vfx.speedx, 0.8)
 
             except Exception as e:
