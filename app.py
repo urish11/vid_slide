@@ -408,35 +408,47 @@ def ease_out_back(t, c1=1.70158, c3=None):
     return 1 + c3 * pow(t - 1, 3) + c1 * pow(t - 1, 2)
     
 def create_smooth_crossfade_loop(clip, total_duration, crossfade_duration=0.5):
-
     original_duration = clip.duration
-    
-    # If the clip is longer than needed, just trim it
+    if original_duration is None:
+        raise ValueError("Cannot loop a clip with no duration.")
+
+    # If the clip is already long enough, just trim and return it.
     if original_duration >= total_duration:
         return clip.subclip(0, total_duration)
-
-    # Fallback for clips that are too short to crossfade
+        
+    # If the clip is too short to crossfade, use the standard (less smooth) loop.
     if original_duration <= crossfade_duration:
         logging.warning("Clip is shorter than crossfade duration, using standard loop.")
         return loop(clip, duration=total_duration)
+
+    clips = []
     
-    # Calculate how many loops are needed
-    effective_loop_duration = original_duration - crossfade_duration
-    num_loops = int(math.ceil((total_duration - original_duration) / effective_loop_duration)) + 1
+    # First clip is played in its entirety
+    clips.append(clip.subclip(0, original_duration - crossfade_duration))
     
-    clips_for_loop = []
-    for i in range(num_loops):
-        start_time = i * effective_loop_duration
-        loop_clip = clip.copy().set_start(start_time)
-        if i > 0:
-            loop_clip = loop_clip.crossfadein(crossfade_duration)
-        clips_for_loop.append(loop_clip)
+    current_pos = original_duration - crossfade_duration
+
+    while current_pos < total_duration:
+        # The crossfading part: from the last 'crossfade_duration' seconds of the clip
+        fade_part = clip.subclip(original_duration - crossfade_duration, original_duration).set_start(current_pos)
         
-    # **CRITICAL FIX**: Explicitly set the size of the composite clip.
-    final_clip = mp.CompositeVideoClip(clips_for_loop, size=clip.size)
+        # The next loop's beginning
+        main_part = clip.subclip(0, original_duration - crossfade_duration)
+
+        # Composite the fade-out of the old clip with the fade-in of the new one
+        crossfaded_segment = mp.CompositeVideoClip([
+            fade_part,
+            main_part.crossfadein(crossfade_duration)
+        ]).set_start(current_pos)
+
+        clips.append(crossfaded_segment)
+        current_pos += (original_duration - crossfade_duration)
+
+    # Assemble all the parts
+    final_loop = mp.CompositeVideoClip(clips, size=clip.size)
     
-    # Use set_duration to precisely trim the final output
-    return final_clip.set_duration(total_duration)
+    # Trim to the exact total duration
+    return final_loop.subclip(0, total_duration)
 
 def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, headline_text3, duration: int = 7, resolution=(1080, 1920), learn_more = "Learn More Now", is_arrow = True):
     logging.info(f"--- Creating Facebook Ad visuals with background: {bg_img_path} ---")
