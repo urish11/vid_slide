@@ -945,17 +945,45 @@ def generate_single_video(
         # 8. Write the final video to a temporary local file
         st.write(f"MoviePy: Writing video file for '{video_topic}'...")
         write_count = 0
-        while write_count < 10 :
+        max_retries = 3  # Reduced from 10 for faster feedback
+        while write_count < max_retries:
             try:    
                 final_video_clip_to_write_obj.write_videofile(
-                    temp_video_file_path, fps=30, codec='libx264', audio_codec='aac',
-                    preset='medium',  threads=4, logger=None # 'bar' or None
+                    temp_video_file_path, 
+                    fps=30, 
+                    codec='libx264', 
+                    audio_codec='aac',
+                    preset='medium', 
+                    threads=4, 
+                    logger=None,
+                    temp_audiofile='temp-audio.m4a',  # Specify temp audio file
+                    remove_temp=True  # Clean up temp files
                 )
                 st.write(f"MoviePy: Video file for '{video_topic}' written locally.")
                 break
-            except: 
-                st.text(f'failed write_videofile {int(write_count)}')
-                write_count += 1 
+            except Exception as e:
+                write_count += 1
+                error_msg = f'Failed write_videofile attempt {write_count}/{max_retries}: {str(e)}'
+                st.error(error_msg)
+                logging.error(f"MoviePy write error for '{video_topic}': {e}", exc_info=True)
+                
+                # Common troubleshooting info
+                if write_count == 1:  # Only show on first failure
+                    st.warning("Common causes: insufficient disk space, codec issues, corrupted clips, or file permissions")
+                    
+                # Wait before retry
+                if write_count < max_retries:
+                    st.info(f"Retrying in 2 seconds... (attempt {write_count + 1}/{max_retries})")
+                    time.sleep(2)
+                else:
+                    st.error(f"❌ Failed to write video for '{video_topic}' after {max_retries} attempts")
+                    
+                    # Additional diagnostic info
+                    st.error("Diagnostic info:")
+                    st.text(f"- Video clip duration: {final_video_clip_to_write_obj.duration if hasattr(final_video_clip_to_write_obj, 'duration') else 'Unknown'}")
+                    st.text(f"- Video clip size: {final_video_clip_to_write_obj.size if hasattr(final_video_clip_to_write_obj, 'size') else 'Unknown'}")
+                    st.text(f"- Temp file path: {temp_video_file_path}")
+                    st.text(f"- Temp file exists: {os.path.exists(temp_video_file_path) if temp_video_file_path else 'No path'}")
 
         # 9. Upload video to S3
         if os.path.exists(temp_video_file_path) and os.path.getsize(temp_video_file_path) > 0:
