@@ -469,6 +469,13 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
             st.warning("MoviePy: Background image not found. Using black fallback.")
             background_clip_obj = mp.ColorClip(size=resolution, color=(0,0,0), duration=duration)
 
+        #Flatten
+        if isinstance(background_clip_obj, mp.VideoClip) and not isinstance(background_clip_obj, mp.ImageClip):
+            logging.info("Baking video background frames to prevent compositing errors...")
+            st.write("MoviePy: Pre-rendering background frames for stability...")
+            background_frames = [frame for frame in background_clip_obj.iter_frames(fps=fps, logger="bar")]
+            background_clip_obj = mp.ImageSequenceClip(background_frames, fps=fps)
+
         clip_aspect_ratio = background_clip_obj.w / background_clip_obj.h
         frame_aspect_ratio = frame_width / frame_height
         if clip_aspect_ratio > frame_aspect_ratio:
