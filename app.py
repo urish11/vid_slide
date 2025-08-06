@@ -468,9 +468,9 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
             
                 elif ".mp4" in bg_img_path:
                     background_clip_obj = mp.VideoFileClip(bg_img_path)
-                    # background_clip_obj = loop(background_clip_obj, duration) 
-                    background_clip_obj = create_smooth_crossfade_loop(background_clip_obj,duration)
-                    # background_clip_obj = background_clip_obj.fx(mp.vfx.speedx, 0.8)
+                    background_clip_obj = loop(background_clip_obj, duration) 
+                    # background_clip_obj = create_smooth_crossfade_loop(background_clip_obj,duration)
+                    background_clip_obj = background_clip_obj.fx(mp.vfx.speedx, 0.8)
 
             except Exception as e:
                 logging.error(f"Error loading background image '{bg_img_path}': {e}")
