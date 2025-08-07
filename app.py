@@ -830,15 +830,15 @@ def generate_single_video(
         try :
             image_prompt_generation_prompt = f"Write a video from for a shot of someone that shows off {video_topic},    . So he's\she's like showing it off to the camera recommending it for 5 seconds. Describe Only what you seen by a camera. no speech, trying to tell to people thru  directly! .make it look candid like user gen content. pick the charachter showing off to be appropriate to the topic. keep the top third of the frame for text as Negative space. keep movment in the video low , not jumpy "
             #NEW
-            image_prompt_generation_prompt = f""" 
-                        Write a video prompt for a 5-second shot of someone showing off {video_topic}.
-                        They are holding it up or using it **as if it's a hidden gem**, looking directly at the camera with a subtle expression of surprise or satisfaction, **inviting curiosity** from the viewer. 
-                        **No speech.** The character should look like a real person—not an actor—caught in an honest moment of discovery. 
-                        The video should feel like **candid, raw user-generated content**, almost like it wasn't meant to be seen. 
-                        Frame it so that the **top third of the video is clear negative space for text.**
-                        The camera is **steady or gently handheld**, with soft natural lighting and **an intriguing, ambiguous background** (like a cluttered room, subway, forest, or unknown location).
-                        Make sure the video leaves the viewer thinking: "*What are they showing me? Why do they look like that?*"
-                        """
+            # image_prompt_generation_prompt = f""" 
+            #             Write a video prompt for a 5-second shot of someone showing off {video_topic}.
+            #             They are holding it up or using it **as if it's a hidden gem**, looking directly at the camera with a subtle expression of surprise or satisfaction, **inviting curiosity** from the viewer. 
+            #             **No speech.** The character should look like a real person—not an actor—caught in an honest moment of discovery. 
+            #             The video should feel like **candid, raw user-generated content**, almost like it wasn't meant to be seen. 
+            #             Frame it so that the **top third of the video is clear negative space for text.**
+            #             The camera is **steady or gently handheld**, with soft natural lighting and **an intriguing, ambiguous background** (like a cluttered room, subway, forest, or unknown location).
+            #             Make sure the video leaves the viewer thinking: "*What are they showing me? Why do they look like that?*"
+            #             """
 
             # image_prompt_generation_prompt = f"""Describe a single video shot of a person who is clearly showing off {video_topic} directly to the camera, as if enthusiastically recommending it to viewers without speaking. The person is facing the camera head-on, making eye contact, and presenting the item with their hands in front of them. It should feel like a candid, user-generated clip — casual lighting, natural background, unstaged, and realistic. Do not include smartphones unless the product itself is a phone. The person should be visually appropriate for the topic (e.g., age, gender, style). Only describe what the camera sees — no inner thoughts, no dialogue."""
 
