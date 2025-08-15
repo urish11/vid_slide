@@ -450,6 +450,42 @@ def create_smooth_crossfade_loop(clip, total_duration, crossfade_duration=0.5):
     # Trim to the exact total duration
     return final_loop.subclip(0, total_duration)
 
+def create_smooth_crossfade_loop_v3(clip, total_duration, crossfade_duration=1.0):
+    """
+    Creates a smooth loop by overlapping the end and beginning of the clip.
+    """
+    original_duration = clip.duration
+    if original_duration is None:
+        raise ValueError("Cannot loop a clip with no duration.")
+
+    if original_duration >= total_duration:
+        return clip.subclip(0, total_duration)
+        
+    if original_duration <= crossfade_duration:
+        return loop(clip, duration=total_duration)
+    
+    # Create a modified clip where the last 'crossfade_duration' seconds
+    # are blended with the first 'crossfade_duration' seconds
+    
+    # Extract the parts
+    main_part = clip.subclip(0, original_duration - crossfade_duration)
+    end_part = clip.subclip(original_duration - crossfade_duration, original_duration)
+    start_part = clip.subclip(0, crossfade_duration)
+    
+    # Create crossfade between end and start
+    crossfaded_part = mp.CompositeVideoClip([
+        end_part,
+        start_part.crossfadein(crossfade_duration)
+    ], size=clip.size)
+    
+    # Create the seamless loop clip
+    seamless_clip = mp.concatenate_videoclips([main_part, crossfaded_part])
+    
+    # Now loop this seamless clip
+    return loop(seamless_clip, duration=total_duration)
+
+
+
 def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, headline_text3, duration: int = 7, resolution=(1080, 1920), learn_more = "Learn More Now", is_arrow = True):
     logging.info(f"--- Creating Facebook Ad visuals with background: {bg_img_path} ---")
     st.write("MoviePy: Creating video visuals...")
@@ -468,9 +504,9 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
             
                 elif ".mp4" in bg_img_path:
                     background_clip_obj = mp.VideoFileClip(bg_img_path)
-                    background_clip_obj = loop(background_clip_obj, duration) 
-                    # background_clip_obj = create_smooth_crossfade_loop(background_clip_obj,duration)
-                    background_clip_obj = background_clip_obj.fx(mp.vfx.speedx, 0.8)
+                    # background_clip_obj = loop(background_clip_obj, duration) 
+                    background_clip_obj = create_smooth_crossfade_loop_v3(background_clip_obj,duration)
+                    # background_clip_obj = background_clip_obj.fx(mp.vfx.speedx, 0.8)
 
             except Exception as e:
                 logging.error(f"Error loading background image '{bg_img_path}': {e}")
