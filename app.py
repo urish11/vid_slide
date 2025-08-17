@@ -407,7 +407,7 @@ def ease_out_back(t, c1=1.70158, c3=None):
     if c3 is None: c3 = c1 + 1
     return 1 + c3 * pow(t - 1, 3) + c1 * pow(t - 1, 2)
     
-def loop_with_crossfade(clip, total_duration, fade=1.0):
+def loop_with_crossfade(clip, total_duration, fade=0.6):
     original_duration = clip.duration
     if original_duration is None:
         raise ValueError("Cannot loop a clip with no duration.")
