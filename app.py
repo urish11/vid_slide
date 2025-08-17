@@ -406,45 +406,30 @@ def elastic_out(t):
 def ease_out_back(t, c1=1.70158, c3=None):
     if c3 is None: c3 = c1 + 1
     return 1 + c3 * pow(t - 1, 3) + c1 * pow(t - 1, 2)
-
-def create_crossfade_loop(clip, total_duration, crossfade_duration=1.0):
-    """
-    Creates a looping video with a crossfade effect between loops.
-    This handles both video and audio.
-
-    :param clip: The video clip to loop.
-    :param total_duration: The total duration of the final video.
-    :param crossfade_duration: The duration of the crossfade in seconds.
-    :return: A new video clip with the looping crossfade effect.
-    """
+    
+def loop_with_crossfade(clip, total_duration, fade=1.0):
     original_duration = clip.duration
     if original_duration is None:
         raise ValueError("Cannot loop a clip with no duration.")
 
-    if original_duration <= crossfade_duration:
-        logging.warning("Clip duration is less than or equal to crossfade duration. Using standard loop.")
+    if original_duration <= fade:
         return loop(clip, duration=total_duration)
 
-    # Calculate how many loops are needed.
-    # The effective duration of each loop segment is the original duration minus the crossfade.
-    effective_duration = original_duration - crossfade_duration
-    if effective_duration <= 0:
-        logging.warning("Crossfade duration is longer than clip duration. Using standard loop.")
-        return loop(clip, duration=total_duration)
+    effective = original_duration - fade
+    loops = math.ceil(total_duration / effective)
 
-    # Add 2 extra loops to ensure the concatenated clip is long enough.
-    num_loops = int(total_duration / effective_duration) + 2
+    def fresh_clip() -> mp.VideoClip:
+        """Return a new clip instance to avoid reader reuse."""
+        filename = getattr(clip, "filename", None)
+        if isinstance(clip, mp.VideoFileClip) and filename:
+            return mp.VideoFileClip(filename).subclip(0, original_duration)
+        return clip.copy()
 
-    # Create copies of the clip to avoid modification issues.
-    clips = [clip.copy() for _ in range(num_loops)]
+    clips = [clip] + [fresh_clip().crossfadein(fade) for _ in range(loops - 1)]
+    final = mp.concatenate_videoclips(clips, method="compose", padding=-fade)
+    return final.subclip(0, total_duration)
 
-    # Concatenate the clips with a crossfade effect.
-    # The `compose` method handles both video and audio, mixing them in the overlapping sections.
-    # The negative padding creates the overlap for the crossfade.
-    final_clip = mp.concatenate_videoclips(clips, method="compose", padding=-crossfade_duration)
 
-    # Trim the final clip to the exact total duration required.
-    return final_clip.set_duration(total_duration)
 
 def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, headline_text3, duration: int = 7, resolution=(1080, 1920), learn_more = "Learn More Now", is_arrow = True):
     logging.info(f"--- Creating Facebook Ad visuals with background: {bg_img_path} ---")
@@ -464,25 +449,8 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
             
                 elif ".mp4" in bg_img_path:
                     background_clip_obj = mp.VideoFileClip(bg_img_path)
-                    looped_clip = create_crossfade_loop(background_clip_obj, duration)
-
-                    # Apply speed effect before baking
-                    processed_clip = looped_clip.fx(mp.vfx.speedx, 0.8)
-
-                    # Now, "bake" the clip to stabilize it
-                    logging.info("Baking crossfaded background clip to prevent compositing errors...")
-                    st.write("MoviePy: Pre-rendering background frames for stability...")
-
-                    # The fps variable is available in this function's scope
-                    background_frames = [frame for frame in processed_clip.iter_frames(fps=fps, logger=None)]
-
-                    # It's important to close the complex clips to release resources
-                    processed_clip.close()
-                    looped_clip.close()
-                    background_clip_obj.close() # also close the original source
-
-                    # The new background_clip_obj is a simple sequence of frames
-                    background_clip_obj = mp.ImageSequenceClip(background_frames, fps=fps)
+                    background_clip_obj = loop_with_crossfade(background_clip_obj, duration)
+                    background_clip_obj = background_clip_obj.fx(mp.vfx.speedx, 0.8)
 
             except Exception as e:
                 logging.error(f"Error loading background image '{bg_img_path}': {e}")
@@ -493,6 +461,16 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
             st.warning("MoviePy: Background image not found. Using black fallback.")
             background_clip_obj = mp.ColorClip(size=resolution, color=(0,0,0), duration=duration)
 
+        #Flatten
+        # if isinstance(background_clip_obj, mp.VideoClip) and not isinstance(background_clip_obj, mp.ImageClip):
+        #     logging.info("Baking video background frames to prevent compositing errors...")
+        #     st.write("MoviePy: Pre-rendering background frames for stability...")
+        #     temp_clip = background_clip_obj.with_duration(background_clip_obj.duration)
+        #     background_frames = [frame for frame in temp_clip.iter_frames(fps=fps, logger=None)]
+        #     background_clip_obj.close()  # Close the original clip
+        #     background_clip_obj = mp.ImageSequenceClip(background_frames, fps=fps)
+
+        
         clip_aspect_ratio = background_clip_obj.w / background_clip_obj.h
         frame_aspect_ratio = frame_width / frame_height
         if clip_aspect_ratio > frame_aspect_ratio:
