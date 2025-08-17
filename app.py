@@ -406,23 +406,49 @@ def elastic_out(t):
 def ease_out_back(t, c1=1.70158, c3=None):
     if c3 is None: c3 = c1 + 1
     return 1 + c3 * pow(t - 1, 3) + c1 * pow(t - 1, 2)
-    
-def loop_with_crossfade(clip, total_duration, fade=1.0):
+
+def create_crossfade_loop(clip, total_duration, crossfade_duration=1.0):
+    """
+    Creates a looping video with a crossfade effect between loops.
+
+    :param clip: The video clip to loop.
+    :param total_duration: The total duration of the final video.
+    :param crossfade_duration: The duration of the crossfade in seconds.
+    :return: A new video clip with the looping crossfade effect.
+    """
     original_duration = clip.duration
     if original_duration is None:
         raise ValueError("Cannot loop a clip with no duration.")
 
-    if original_duration <= fade:
+    if original_duration <= crossfade_duration:
+        logging.warning("Clip duration is less than or equal to crossfade duration. Using standard loop.")
         return loop(clip, duration=total_duration)
 
-    effective = original_duration - fade
-    loops = math.ceil(total_duration / effective)
+    # Calculate how many loops are needed
+    num_loops = int(total_duration / (original_duration - crossfade_duration)) + 1
 
-    clips = [clip] + [clip.copy().crossfadein(fade) for _ in range(loops - 1)]
-    final = mp.concatenate_videoclips(clips, method="compose", padding=-fade)
-    return final.subclip(0, total_duration)
+    # Create the list of clips to concatenate
+    clips = [clip]
+    for i in range(1, num_loops):
+        # Subsequent clips start from the beginning of the original clip
+        clips.append(clip.set_start((original_duration - crossfade_duration) * i))
 
+    # Concatenate the clips with crossfade
+    # The crossfade is applied between each pair of consecutive clips
+    final_clip = mp.concatenate_videoclips(clips, method="compose", padding=-crossfade_duration)
+    
+    # Handle audio crossfade if audio exists
+    if clip.audio:
+        audio_clips = [clip.audio]
+        for i in range(1, num_loops):
+            audio_clips.append(clip.audio.set_start((original_duration - crossfade_duration) * i))
+        
+        final_audio = mp.concatenate_audioclips(audio_clips)
+        final_audio = final_audio.fx(mp.afx.audio_fadein, crossfade_duration)
+        final_audio = final_audio.fx(mp.afx.audio_fadeout, crossfade_duration)
+        final_clip.audio = final_audio
 
+    return final_clip.set_duration(total_duration)
 
 def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, headline_text3, duration: int = 7, resolution=(1080, 1920), learn_more = "Learn More Now", is_arrow = True):
     logging.info(f"--- Creating Facebook Ad visuals with background: {bg_img_path} ---")
@@ -442,7 +468,7 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
             
                 elif ".mp4" in bg_img_path:
                     background_clip_obj = mp.VideoFileClip(bg_img_path)
-                    background_clip_obj = loop_with_crossfade(background_clip_obj, duration)
+                    background_clip_obj = create_crossfade_loop(background_clip_obj, duration)
                     background_clip_obj = background_clip_obj.fx(mp.vfx.speedx, 0.8)
 
             except Exception as e:
