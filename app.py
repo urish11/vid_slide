@@ -418,7 +418,14 @@ def loop_with_crossfade(clip, total_duration, fade=1.0):
     effective = original_duration - fade
     loops = math.ceil(total_duration / effective)
 
-    clips = [clip] + [clip.copy().crossfadein(fade) for _ in range(loops - 1)]
+    def fresh_clip() -> mp.VideoClip:
+        """Return a new clip instance to avoid reader reuse."""
+        filename = getattr(clip, "filename", None)
+        if isinstance(clip, mp.VideoFileClip) and filename:
+            return mp.VideoFileClip(filename).subclip(0, original_duration)
+        return clip.copy()
+
+    clips = [clip] + [fresh_clip().crossfadein(fade) for _ in range(loops - 1)]
     final = mp.concatenate_videoclips(clips, method="compose", padding=-fade)
     return final.subclip(0, total_duration)
 
