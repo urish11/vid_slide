@@ -169,13 +169,13 @@ def generate_fal_video(full_prompt: str): # Changed 'topic' to 'full_prompt'
     st.write(f"Fal: Generating video for prompt: {full_prompt[:150]}...")
     try:
         result = fal_client.subscribe(
-            "fal-ai/wan/v2.2-5b/text-to-video/fast-wan", # Using a potentially faster/cheaper model as an example
+            "fal-ai/wan/v2.2-a14b/text-to-video/turbo", # Using a potentially faster/cheaper model as an example
             # "rundiffusion-fal/juggernaut-flux/lightning", # Original model
             arguments={
                 "prompt": full_prompt, # Use the full prompt directly
                 "aspect_ratio": "9:16", # Or "square_hd" / "landscape_16_9"
-                "resolution": "580p", 
-                "num_frames": 121,
+                "resolution": "480p", 
+                # "num_frames": 121,
            
                 "enable_safety_checker": False
             },
