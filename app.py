@@ -175,6 +175,7 @@ def generate_fal_video(full_prompt: str): # Changed 'topic' to 'full_prompt'
                 "prompt": full_prompt, # Use the full prompt directly
                 "aspect_ratio": "9:16", # Or "square_hd" / "landscape_16_9"
                 "resolution": "480p", 
+                "num_frames": 121,
            
                 "enable_safety_checker": False
             },
