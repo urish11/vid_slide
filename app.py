@@ -228,13 +228,13 @@ def generate_html_overlay(video_topic: str, language: str, anthropic_api_key: st
         raw_html = re.sub(r'\n```$', '', raw_html)
     return raw_html
 
-def html_to_video_clip(html_code: str, duration: float, resolution=(1080,960), fps: int = 30) -> mp.VideoClip:
+def html_to_video_clip(html_code: str, duration: float, resolution=(1080, 960), fps: int = 30) -> mp.VideoClip:
     """Render HTML to a video clip of a given duration.
 
-    Instead of relying on repeated screenshots (which can result in low frame
-    rates), this implementation records the browser's canvas directly using the
-    ``MediaRecorder`` API. The recorded WebM is then loaded into MoviePy for
-    compositing. This yields much smoother playback for animated HTML content.
+    Uses a frame-by-frame screenshot approach so it works even when the
+    browser's ``captureStream`` API is unavailable in headless mode. Frames are
+    grabbed at roughly ``fps`` and the resulting clip is adjusted to play back
+    in real time based on the actual capture duration.
     """
     options = Options()
     options.add_argument("--headless")
@@ -243,40 +243,34 @@ def html_to_video_clip(html_code: str, duration: float, resolution=(1080,960), f
     options.add_argument(f"--window-size={resolution[0]},{resolution[1]}")
     options.add_argument("--force-device-scale-factor=1")
     driver = webdriver.Chrome(options=options)
-    temp_path = None
+    frames = []
+    start = time.time()
     try:
         data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(html_code)
         driver.get(data_uri)
         driver.execute_script("document.body.style.margin='0';document.body.style.padding='0';")
 
-        record_js = """
-            const [dur, fps] = arguments;
-            const stream = document.documentElement.captureStream(fps);
-            const recorder = new MediaRecorder(stream, {mimeType: 'video/webm;codecs=vp9'});
-            let chunks = [];
-            recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
-            recorder.start();
-            return new Promise(resolve => {
-                setTimeout(() => {
-                    recorder.onstop = () => {
-                        const blob = new Blob(chunks, {type: 'video/webm'});
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve(reader.result);
-                        reader.readAsDataURL(blob);
-                    };
-                    recorder.stop();
-                }, dur);
-            });
-        """
-        data_url = driver.execute_async_script(record_js, int(duration * 1000), fps)
-        header, b64data = data_url.split(',', 1)
-        video_bytes = base64.b64decode(b64data)
-        with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
-            tmp.write(video_bytes)
-            temp_path = tmp.name
-        clip = mp.VideoFileClip(temp_path).resize(resolution).set_duration(duration)
+        frame_interval = 1.0 / fps
+        next_capture = start
+        while time.time() - start < duration:
+            png = driver.get_screenshot_as_png()
+            img = Image.open(BytesIO(png)).resize(resolution)
+            frames.append(np.array(img))
+            img.close()
+            next_capture += frame_interval
+            sleep_time = next_capture - time.time()
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+
     finally:
+        recorded_duration = time.time() - start
         driver.quit()
+
+    if not frames:
+        raise RuntimeError("No frames captured from HTML rendering")
+
+    actual_fps = max(1, len(frames) / recorded_duration)
+    clip = mp.ImageSequenceClip(frames, fps=actual_fps).set_duration(duration)
     return clip
 
 # --- 2. Text Generation with Claude ---
