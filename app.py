@@ -240,6 +240,8 @@ def html_to_video_clip(html_code: str, duration: float, resolution=(1080, 960), 
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--hide-scrollbars")
     options.add_argument(f"--window-size={resolution[0]},{resolution[1]}")
     options.add_argument("--force-device-scale-factor=1")
     driver = webdriver.Chrome(options=options)
@@ -250,17 +252,10 @@ def html_to_video_clip(html_code: str, duration: float, resolution=(1080, 960), 
         driver.get(data_uri)
         driver.execute_script("document.body.style.margin='0';document.body.style.padding='0';")
 
-        frame_interval = 1.0 / fps
-        next_capture = start
         while time.time() - start < duration:
             png = driver.get_screenshot_as_png()
-            img = Image.open(BytesIO(png)).resize(resolution)
-            frames.append(np.array(img))
-            img.close()
-            next_capture += frame_interval
-            sleep_time = next_capture - time.time()
-            if sleep_time > 0:
-                time.sleep(sleep_time)
+            with Image.open(BytesIO(png)) as img:
+                frames.append(np.array(img))
 
     finally:
         recorded_duration = time.time() - start
