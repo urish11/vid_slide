@@ -203,6 +203,7 @@ def generate_fal_video(full_prompt: str, aspect_ratio: str = "9:16"): # Changed 
 def generate_html_overlay(video_topic: str, language: str, anthropic_api_key: str) -> str:
     html_prompt = f"""for a viral FB reel video gen html with animation responsive view for "{video_topic}" in language {language} , make it  VERY eye catcing and sort of low quality style. but not annoying
                 elements: JUST  1 main text big legible, and a Caption (Learn More Now). make sure good spacing and no overlapping text
+                make the content fill the entire view: body margin 0, use flexbox to center elements and large vw/vh-based fonts so there is minimal empty space
                 no frames
 
                 CTAs: Use "Learn More," "See Options" (must lead to articles). Avoid "Apply Now," "Shop Now," or any CTA promising unoffered value.
@@ -232,21 +233,29 @@ def html_to_video_clip(html_code: str, duration: float, resolution=(1080,960), f
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument(f"--window-size={resolution[0]},{resolution[1]}")
+    options.add_argument("--force-device-scale-factor=1")
     driver = webdriver.Chrome(options=options)
     try:
         data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(html_code)
         driver.get(data_uri)
+        driver.execute_script("document.body.style.margin='0';document.body.style.padding='0';")
         time.sleep(1)
         frames = []
-        for _ in range(int(duration * fps)):
+        start = time.time()
+        frame_idx = 0
+        while time.time() - start < duration:
             png = driver.get_screenshot_as_png()
             img = Image.open(BytesIO(png)).convert("RGB")
             img = img.resize(resolution)
             frames.append(np.array(img))
-            time.sleep(1 / fps)
+            frame_idx += 1
+            next_frame_time = start + frame_idx / fps
+            sleep_time = next_frame_time - time.time()
+            if sleep_time > 0:
+                time.sleep(sleep_time)
     finally:
         driver.quit()
-    clip = mp.ImageSequenceClip(frames, fps=fps).set_duration(duration)
+    clip = mp.ImageSequenceClip(frames, fps=fps)
     return clip
 
 # --- 2. Text Generation with Claude ---
