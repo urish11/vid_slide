@@ -24,6 +24,9 @@ from googleapiclient.discovery import build
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import os
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import urllib.parse
 if not hasattr(Image, 'ANTIALIAS'):
     Image.ANTIALIAS = Image.Resampling.LANCZOS
 st.set_page_config(layout="wide", page_title="Vid Slide Gen",page_icon="🎦")
@@ -194,6 +197,50 @@ def generate_fal_video(full_prompt: str): # Changed 'topic' to 'full_prompt'
         logging.error(f"Error during Fal video generation: {e}")
         st.error(f"Fal Error: {e}")
         return None
+
+# --- HTML Generation and Rendering ---
+def generate_html_overlay(video_topic: str, language: str, anthropic_api_key: str) -> str:
+    html_prompt = f"""for a viral FB reel video gen html with animation responsive view for "{video_topic}" in language {language} , make it  VERY eye catcing and sort of low quality style. but not annoying
+                elements: JUST  1 main text big legible, and a Caption (Learn More Now). make sure good spacing and no overlapping text
+                no frames
+
+                CTAs: Use "Learn More," "See Options" (must lead to articles). Avoid "Apply Now," "Shop Now," or any CTA promising unoffered value.
+                Prohibited Language: Avoid urgency ("Click now," "Limited Time"), geographic terms ("Near you"), or superlatives ("Best").
+                Specific Text/Visual Bans:
+                Never use "Today," "We," or "Our."
+                Do not use prices in images.
+                Avoid overlay texts like: "Last Spots," "WARNING," "URGENT," "Get Today," "At fraction of cost...," "MASSIVE DISCOUNTS/SAVINGS," "Senior Discount," "All models...," "Available Now," "immediately," "drastically."
+                Guarantees:
+                Employment/Education: Do not guarantee job benefits (high pay, remote work) or education outcomes (degrees, job placement).
+                Financial: Do not guarantee loans, credit approval, investment returns, or debt relief. Do not offer banking, insurance, or licensed financial services. Avoid showing money bills.
+                "Free" Promotions: Generally avoid promoting anything as "free."
+
+                return JUST THE HTML CODE
+"""
+    return generate_text_with_claude(html_prompt, anthropic_api_key=anthropic_api_key, model="claude-3-7-sonnet-latest")
+
+def html_to_video_clip(html_code: str, duration: float, resolution=(1080,960), fps: int = 30) -> mp.VideoClip:
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument(f"--window-size={resolution[0]},{resolution[1]}")
+    driver = webdriver.Chrome(options=options)
+    try:
+        data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(html_code)
+        driver.get(data_uri)
+        time.sleep(1)
+        frames = []
+        for _ in range(int(duration * fps)):
+            png = driver.get_screenshot_as_png()
+            img = Image.open(BytesIO(png)).convert("RGB")
+            img = img.resize(resolution)
+            frames.append(np.array(img))
+            time.sleep(1 / fps)
+    finally:
+        driver.quit()
+    clip = mp.ImageSequenceClip(frames, fps=fps).set_duration(duration)
+    return clip
 
 # --- 2. Text Generation with Claude ---
 def generate_text_with_claude(prompt: str, anthropic_api_key: str, model: str = "claude-sonnet-4-20250514", temperature: float = 0.88, max_retries: int = 3): # claude-3-opus-20240229, claude-3-sonnet-20240229, claude-3-haiku-20240307
@@ -756,7 +803,9 @@ def generate_single_video(
     video_visuals_clip_obj = None
     tts_audio_clip_obj = None
     final_video_clip_to_write_obj = None
-    if format == "image":
+    html_overlay_clip_obj = None
+    background_base_clip_obj = None
+    if format in ("image", "html_img"):
         try:
             # 1. Generate Image Prompt (using Claude)
             image_prompt_generation_prompt = f"write engaging image prompt for " + video_topic + "make sure to extract the visual aspect of the topic, that can convice people to click and show the positive most direct benefit (negate any non tangible aspect of the topic) make it look really good and attractive. ideally show a real life scenario people can relate.. like for 'bank repossessed cars' show a lot of cars in a lot and people around them. no overlay text on image!!! NO  TEXT ON IMAGE!!!"
@@ -807,7 +856,7 @@ def generate_single_video(
             st.text(f"Error in Generate Image Prompt: {e}")
         
 
-    elif format == "video": 
+    elif format in ("video", "html_video"):
         try :
             image_prompt_generation_prompt = f"Write a video from for a shot of someone that shows off {video_topic},    . So he's\she's like showing it off to the camera recommending it for 5 seconds. Describe Only what you seen by a camera. no speech, trying to tell to people thru  directly! .make it look candid like user gen content. pick the charachter showing off to be appropriate to the topic. keep the top third of the frame for text as Negative space. keep movment in the video low , not jumpy "
             #NEW
@@ -868,37 +917,36 @@ def generate_single_video(
             st.warning(f"No narration script for '{video_topic}' ({language}). Video will be silent.")
 
         # 5. Generate Video Captions (Claude, with language)
-        caption_prompt = f"""write a json with text to be shown as caption on video (the captions complete a sentence togther) not overly promising , dont use 'Limited Time' 'Last Spots' etc!!! dont make up info, for topic article about {video_topic} in language:{language} , must be 3 captions , each 2 words, for high ctr in like this format, not over sensetional and dont make big promises! : """ + """{'caption1' : 'BAD CREDIT?' ,'caption2' : 'RV OWNERSHIP' ,'caption3' : 'STILL POSSIBLE!'  }
+        if format in ("image", "video"):
+            caption_prompt = f"""write a json with text to be shown as caption on video (the captions complete a sentence togther) not overly promising , dont use 'Limited Time' 'Last Spots' etc!!! dont make up info, for topic article about {video_topic} in language:{language} , must be 3 captions , each 2 words, for high ctr in like this format, not over sensetional and dont make big promises! : """ + """{'caption1' : 'BAD CREDIT?' ,'caption2' : 'RV OWNERSHIP' ,'caption3' : 'STILL POSSIBLE!'  }
                                          return JUST the json
 """
-        captions_json_str = generate_text_with_claude(
-            prompt=caption_prompt, anthropic_api_key=anthropic_api_key,model = "claude-3-7-sonnet-latest" # Haiku is good for structured JSON
-        )
-        captions_data = {}
-        if captions_json_str:
-            try:
-                json_start = captions_json_str.find('{')
-                json_end = captions_json_str.rfind('}') + 1
-                if json_start != -1 and json_end > json_start:
-                    captions_data = json.loads(captions_json_str[json_start:json_end])
-                else: raise ValueError("No JSON object delimiters found.")
-            except Exception as e: # Catches JSONDecodeError and ValueError
-                logging.error(f"Failed to parse/find captions JSON for '{video_topic}' ({language}): {e}. Response: {captions_json_str}")
-                st.warning(f"Could not parse captions for '{video_topic}' ({language}). Using defaults.")
-        
-        default_captions_map = {
-            "English": {"c1": "INTERESTED?", "c2": video_topic[:15].upper(), "c3": "SEE HOW!"},
-            "Spanish": {"c1": "¿INTERESADO?", "c2": video_topic[:15].upper(), "c3": "¡DESCUBRE!"},
-            # Add more languages as needed
-        }
-        default_lang_captions = default_captions_map.get(language, default_captions_map["English"])
-        headline_text1 = captions_data.get("caption1", default_lang_captions["c1"]).upper()
-        headline_text2 = captions_data.get("caption2", default_lang_captions["c2"]).upper()
-        headline_text3 = captions_data.get("caption3", default_lang_captions["c3"]).upper()
+            captions_json_str = generate_text_with_claude(
+                prompt=caption_prompt, anthropic_api_key=anthropic_api_key,model = "claude-3-7-sonnet-latest" # Haiku is good for structured JSON
+            )
+            captions_data = {}
+            if captions_json_str:
+                try:
+                    json_start = captions_json_str.find('{')
+                    json_end = captions_json_str.rfind('}') + 1
+                    if json_start != -1 and json_end > json_start:
+                        captions_data = json.loads(captions_json_str[json_start:json_end])
+                    else: raise ValueError("No JSON object delimiters found.")
+                except Exception as e: # Catches JSONDecodeError and ValueError
+                    logging.error(f"Failed to parse/find captions JSON for '{video_topic}' ({language}): {e}. Response: {captions_json_str}")
+                    st.warning(f"Could not parse captions for '{video_topic}' ({language}). Using defaults.")
 
+            default_captions_map = {
+                "English": {"c1": "INTERESTED?", "c2": video_topic[:15].upper(), "c3": "SEE HOW!"},
+                "Spanish": {"c1": "¿INTERESADO?", "c2": video_topic[:15].upper(), "c3": "¡DESCUBRE!"},
+                # Add more languages as needed
+            }
+            default_lang_captions = default_captions_map.get(language, default_captions_map["English"])
+            headline_text1 = captions_data.get("caption1", default_lang_captions["c1"]).upper()
+            headline_text2 = captions_data.get("caption2", default_lang_captions["c2"]).upper()
+            headline_text3 = captions_data.get("caption3", default_lang_captions["c3"]).upper()
 
-
-        learn_more_text = generate_text_with_claude(f"""write 'Learn More Now' in {language}, return just the text1!!!""" ,anthropic_api_key=anthropic_api_key, model="claude-3-7-sonnet-20250219" ).replace("'","").replace('"',"")
+            learn_more_text = generate_text_with_claude(f"""write 'Learn More Now' in {language}, return just the text1!!!""" ,anthropic_api_key=anthropic_api_key, model="claude-3-7-sonnet-20250219" ).replace("'","").replace('"',"")
 
         # Determine video duration
         video_duration_final = 7  # Default if no audio
@@ -916,16 +964,32 @@ def generate_single_video(
             temp_video_file_path = temp_video_file_obj.name
         # temp_video_file_obj is closed here, path is retained
 
-        video_visuals_clip_obj = create_facebook_ad_new(
-            bg_img_path=bg_image_for_video_path, # Can be None
-            headline_text1=headline_text1, headline_text2=headline_text2, headline_text3=headline_text3,
-            duration=video_duration_final, learn_more=learn_more_text,
-            is_arrow = is_arrow
-        )
-
-        if not video_visuals_clip_obj:
-            st.error(f"MoviePy: Failed to create video visuals for {video_topic}. Skipping this video.")
-            raise Exception("Visuals creation failed.") # Propagate to finally for cleanup
+        if format in ("image", "video"):
+            video_visuals_clip_obj = create_facebook_ad_new(
+                bg_img_path=bg_image_for_video_path, # Can be None
+                headline_text1=headline_text1, headline_text2=headline_text2, headline_text3=headline_text3,
+                duration=video_duration_final, learn_more=learn_more_text,
+                is_arrow = is_arrow
+            )
+            if not video_visuals_clip_obj:
+                st.error(f"MoviePy: Failed to create video visuals for {video_topic}. Skipping this video.")
+                raise Exception("Visuals creation failed.") # Propagate to finally for cleanup
+        else:
+            try:
+                html_code = generate_html_overlay(video_topic, language, anthropic_api_key)
+                html_overlay_clip_obj = html_to_video_clip(html_code, video_duration_final)
+                if format == "html_img":
+                    background_base_clip_obj = mp.ImageClip(bg_image_for_video_path)
+                    background_base_clip_obj = zoom_effect(background_base_clip_obj, 0.035).set_duration(video_duration_final)
+                else:
+                    background_base_clip_obj = mp.VideoFileClip(bg_image_for_video_path)
+                    background_base_clip_obj = loop_with_crossfade(background_base_clip_obj, video_duration_final)
+                top_clip = html_overlay_clip_obj.resize((1080,960)).set_position((0,0))
+                bottom_clip = background_base_clip_obj.resize((1080,960)).set_position((0,960))
+                video_visuals_clip_obj = mp.CompositeVideoClip([top_clip, bottom_clip], size=(1080,1920)).set_duration(video_duration_final)
+            except Exception as e:
+                st.error(f"MoviePy: Error creating HTML overlay for {video_topic}: {e}")
+                raise
 
         # 7. Combine Video Visuals with TTS Audio
         final_video_clip_to_write_obj = video_visuals_clip_obj # Default to visuals only
@@ -1008,6 +1072,8 @@ def generate_single_video(
         if video_visuals_clip_obj: video_visuals_clip_obj.close()
         if tts_audio_clip_obj: tts_audio_clip_obj.close()
         if final_video_clip_to_write_obj: final_video_clip_to_write_obj.close()
+        if html_overlay_clip_obj: html_overlay_clip_obj.close()
+        if background_base_clip_obj: background_base_clip_obj.close()
         
         # Cleanup temporary files
         for f_path in [temp_bg_image_path, tts_audio_file_path_local, temp_video_file_path]:
@@ -1045,7 +1111,7 @@ def run_streamlit_app():
         if uploaded_file:
             try:
                 input_df = pd.read_csv(uploaded_file)
-                required_cols = ['topic', 'count', 'language', 'voice' , 'is_arrow']
+                required_cols = ['topic', 'count', 'language', 'voice' , 'is_arrow', 'format']
                 if not all(col in input_df.columns for col in required_cols):
                     st.error(f"CSV must contain columns: {', '.join(required_cols)}")
                     input_df = None # Invalidate df
@@ -1083,7 +1149,7 @@ def run_streamlit_app():
                     required=True
                 ),
                 "is_arrow" :st.column_config.SelectboxColumn("Show arrow", options=[True , False, "Random"]),
-                "format" :st.column_config.SelectboxColumn("format", options=["image", "video", "Random"])
+                "format" :st.column_config.SelectboxColumn("format", options=["image", "video", "html_img", "html_video", "Random"])
                 
             }
         )
@@ -1111,7 +1177,7 @@ def run_streamlit_app():
             return
         
         # Final validation of manual input df (drop fully empty rows if any)
-        input_df.dropna(subset=['topic', 'language', 'voice' ,'is_arrow'], how='all', inplace=True)
+        input_df.dropna(subset=['topic', 'language', 'voice' ,'is_arrow', 'format'], how='all', inplace=True)
         input_df = input_df[input_df['topic'].astype(str).str.strip() != ''] # Remove rows with empty topic
         input_df['count'] = pd.to_numeric(input_df['count'], errors='coerce').fillna(1).astype(int)
         input_df = input_df[input_df['count'] > 0]
@@ -1148,7 +1214,7 @@ def run_streamlit_app():
                 format = row["format"]
 
                 if is_arrow == "Random": is_arrow = random.choice([True,False])
-                if format == "Random": is_arrow = random.choice(["image", "video"])
+                if format == "Random": format = random.choice(["image", "video", "html_img", "html_video"])
 
                 st.markdown(f"Processing: **{topic_val}** ({lang_val}) - {count_val} {format}  video(s) with voice '{voice_val}'")
                 
