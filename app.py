@@ -19,6 +19,7 @@ from collections.abc import Callable
 import boto3
 from io import BytesIO # Not directly used for video file upload, but good S3 utility
 import random
+import re
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from datetime import datetime
@@ -137,7 +138,7 @@ def zoom_effect(
         return result
     return clip.fl(_apply)
 
-def generate_fal_image(full_prompt: str): # Changed 'topic' to 'full_prompt'
+def generate_fal_image(full_prompt: str, image_size: str = "portrait_16_9"): # Changed 'topic' to 'full_prompt'
     logging.info(f"--- Requesting image from Fal with prompt: {full_prompt[:100]}... ---")
     st.write(f"Fal: Generating image for prompt: {full_prompt[:150]}...")
     try:
@@ -146,7 +147,7 @@ def generate_fal_image(full_prompt: str): # Changed 'topic' to 'full_prompt'
             # "rundiffusion-fal/juggernaut-flux/lightning", # Original model
             arguments={
                 "prompt": full_prompt, # Use the full prompt directly
-                "image_size": "portrait_16_9", # Or "square_hd" / "landscape_16_9"
+                "image_size": image_size, # Or "square_hd" / "landscape_16_9"
                 "num_inference_steps": 12, # Fast, adjust if quality needed
                 "num_images": 1,
                 "enable_safety_checker": True
@@ -167,7 +168,7 @@ def generate_fal_image(full_prompt: str): # Changed 'topic' to 'full_prompt'
         st.error(f"Fal Error: {e}")
         return None
     
-def generate_fal_video(full_prompt: str): # Changed 'topic' to 'full_prompt'
+def generate_fal_video(full_prompt: str, aspect_ratio: str = "9:16"): # Changed 'topic' to 'full_prompt'
     logging.info(f"--- Requesting video from Fal with prompt: {full_prompt[:100]}... ---")
     st.write(f"Fal: Generating video for prompt: {full_prompt[:150]}...")
     try:
@@ -176,10 +177,10 @@ def generate_fal_video(full_prompt: str): # Changed 'topic' to 'full_prompt'
             # "rundiffusion-fal/juggernaut-flux/lightning", # Original model
             arguments={
                 "prompt": full_prompt, # Use the full prompt directly
-                "aspect_ratio": "9:16", # Or "square_hd" / "landscape_16_9"
-                "resolution": "480p", 
+                "aspect_ratio": aspect_ratio, # Or "square_hd" / "landscape_16_9"
+                "resolution": "480p",
                 # "num_frames": 121,
-           
+
                 "enable_safety_checker": False
             },
             with_logs=True, # Set to False to reduce console noise if preferred
@@ -217,7 +218,13 @@ def generate_html_overlay(video_topic: str, language: str, anthropic_api_key: st
 
                 return JUST THE HTML CODE
 """
-    return generate_text_with_claude(html_prompt, anthropic_api_key=anthropic_api_key, model="claude-3-7-sonnet-latest")
+    raw_html = generate_text_with_claude(html_prompt, anthropic_api_key=anthropic_api_key, model="claude-3-7-sonnet-latest")
+    raw_html = raw_html.strip()
+    if raw_html.startswith("```"):
+        # Remove ```html or ``` wrapper from Claude response
+        raw_html = re.sub(r'^```(?:html)?\n', '', raw_html, flags=re.IGNORECASE)
+        raw_html = re.sub(r'\n```$', '', raw_html)
+    return raw_html
 
 def html_to_video_clip(html_code: str, duration: float, resolution=(1080,960), fps: int = 30) -> mp.VideoClip:
     options = Options()
@@ -840,7 +847,7 @@ def generate_single_video(
                 image_prompt_for_fal = f"{video_topic}, \n looks great\n photorealistic, candid unstaged" # Basic fallback
 
             # 2. Generate and Download Background Image (Fal)
-            fal_image_info = generate_fal_image(full_prompt=image_prompt_for_fal)
+            fal_image_info = generate_fal_image(full_prompt=image_prompt_for_fal, image_size="square_hd" if format == "html_img" else "portrait_16_9")
             bg_image_for_video_path = None
             if fal_image_info and 'url' in fal_image_info:
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_img_file:
@@ -882,7 +889,7 @@ def generate_single_video(
                     st.warning(f"Could not generate image prompt for '{video_topic}'. Using topic as fallback.")
                     video_prompt_for_fal = f"{video_topic}, \n looks great\n photorealistic, candid unstaged" # Basic fallback
 
-            fal_image_info = generate_fal_video(full_prompt=video_prompt_for_fal)
+            fal_image_info = generate_fal_video(full_prompt=video_prompt_for_fal, aspect_ratio="1:1" if format == "html_video" else "9:16")
             bg_image_for_video_path = None
             if fal_image_info and 'url' in fal_image_info:
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp_img_file:
