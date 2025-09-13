@@ -220,7 +220,7 @@ def generate_html_overlay(video_topic: str, language: str, anthropic_api_key: st
 
                 return JUST THE HTML CODE
 """
-    raw_html = generate_text_with_claude(html_prompt, anthropic_api_key=anthropic_api_key, model="claude-sonnet-4-20250514")
+    raw_html = generate_text_with_claude(html_prompt, anthropic_api_key=anthropic_api_key, model="claude-sonnet-4-20250514",temperature=1)
     raw_html = raw_html.strip()
     if raw_html.startswith("```"):
         # Remove ```html or ``` wrapper from Claude response
