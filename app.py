@@ -228,6 +228,12 @@ def generate_html_overlay(video_topic: str, language: str, anthropic_api_key: st
     return raw_html
 
 def html_to_video_clip(html_code: str, duration: float, resolution=(1080,960), fps: int = 30) -> mp.VideoClip:
+    """Render HTML to a video clip of a given duration.
+
+    Chrome screenshots can be slower than the requested ``fps`` which would make the
+    resulting clip play back too quickly. To preserve the real-time duration we
+    compute the effective FPS from the number of captured frames.
+    """
     options = Options()
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
@@ -255,7 +261,13 @@ def html_to_video_clip(html_code: str, duration: float, resolution=(1080,960), f
                 time.sleep(sleep_time)
     finally:
         driver.quit()
-    clip = mp.ImageSequenceClip(frames, fps=fps)
+
+    # Calculate the actual FPS from the captured frames to keep the clip's
+    # playback length equal to the real-time capture duration.
+    actual_fps = len(frames) / duration if duration > 0 else fps
+    if actual_fps <= 0:
+        actual_fps = 1
+    clip = mp.ImageSequenceClip(frames, fps=actual_fps).set_duration(duration)
     return clip
 
 # --- 2. Text Generation with Claude ---
