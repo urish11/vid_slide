@@ -20,6 +20,7 @@ import boto3
 from io import BytesIO # Not directly used for video file upload, but good S3 utility
 import random
 import re
+import base64
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from datetime import datetime
@@ -230,9 +231,10 @@ def generate_html_overlay(video_topic: str, language: str, anthropic_api_key: st
 def html_to_video_clip(html_code: str, duration: float, resolution=(1080,960), fps: int = 30) -> mp.VideoClip:
     """Render HTML to a video clip of a given duration.
 
-    Chrome screenshots can be slower than the requested ``fps`` which would make the
-    resulting clip play back too quickly. To preserve the real-time duration we
-    compute the effective FPS from the number of captured frames.
+    Instead of relying on repeated screenshots (which can result in low frame
+    rates), this implementation records the browser's canvas directly using the
+    ``MediaRecorder`` API. The recorded WebM is then loaded into MoviePy for
+    compositing. This yields much smoother playback for animated HTML content.
     """
     options = Options()
     options.add_argument("--headless")
@@ -241,33 +243,40 @@ def html_to_video_clip(html_code: str, duration: float, resolution=(1080,960), f
     options.add_argument(f"--window-size={resolution[0]},{resolution[1]}")
     options.add_argument("--force-device-scale-factor=1")
     driver = webdriver.Chrome(options=options)
+    temp_path = None
     try:
         data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(html_code)
         driver.get(data_uri)
         driver.execute_script("document.body.style.margin='0';document.body.style.padding='0';")
-        time.sleep(1)
-        frames = []
-        start = time.time()
-        frame_idx = 0
-        while time.time() - start < duration:
-            png = driver.get_screenshot_as_png()
-            img = Image.open(BytesIO(png)).convert("RGB")
-            img = img.resize(resolution)
-            frames.append(np.array(img))
-            frame_idx += 1
-            next_frame_time = start + frame_idx / fps
-            sleep_time = next_frame_time - time.time()
-            if sleep_time > 0:
-                time.sleep(sleep_time)
+
+        record_js = """
+            const [dur, fps] = arguments;
+            const stream = document.documentElement.captureStream(fps);
+            const recorder = new MediaRecorder(stream, {mimeType: 'video/webm;codecs=vp9'});
+            let chunks = [];
+            recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+            recorder.start();
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    recorder.onstop = () => {
+                        const blob = new Blob(chunks, {type: 'video/webm'});
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    };
+                    recorder.stop();
+                }, dur);
+            });
+        """
+        data_url = driver.execute_async_script(record_js, int(duration * 1000), fps)
+        header, b64data = data_url.split(',', 1)
+        video_bytes = base64.b64decode(b64data)
+        with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
+            tmp.write(video_bytes)
+            temp_path = tmp.name
+        clip = mp.VideoFileClip(temp_path).resize(resolution).set_duration(duration)
     finally:
         driver.quit()
-
-    # Calculate the actual FPS from the captured frames to keep the clip's
-    # playback length equal to the real-time capture duration.
-    actual_fps = len(frames) / duration if duration > 0 else fps
-    if actual_fps <= 0:
-        actual_fps = 1
-    clip = mp.ImageSequenceClip(frames, fps=actual_fps).set_duration(duration)
     return clip
 
 # --- 2. Text Generation with Claude ---
