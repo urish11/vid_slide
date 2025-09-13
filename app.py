@@ -228,14 +228,23 @@ def generate_html_overlay(video_topic: str, language: str, anthropic_api_key: st
         raw_html = re.sub(r'\n```$', '', raw_html)
     return raw_html
 
-def html_to_video_clip(html_code: str, duration: float, resolution=(1080, 960), fps: int = 30) -> mp.VideoClip:
-    """Render HTML to a video clip of a given duration.
+def html_to_video_clip_offline_render(
+    html_code: str,
+    duration: float,
+    resolution: tuple[int, int] = (1080, 960),
+    target_fps: int = 30,
+) -> mp.VideoClip:
+    """Render HTML to a video using a frame-by-frame offline method.
 
-    Uses a frame-by-frame screenshot approach so it works even when the
-    browser's ``captureStream`` API is unavailable in headless mode. Frames are
-    grabbed at roughly ``fps`` and the resulting clip is adjusted to play back
-    in real time based on the actual capture duration.
+    Animations are paused and advanced manually in JavaScript so each frame is
+    captured at a precise point in time. This produces smooth results on CPU
+    environments at the cost of slower render time.
     """
+    st.write(f"HTML Overlay: Starting offline render at {target_fps} FPS. This will be slow but smooth.")
+    logging.info(
+        f"Starting offline HTML render at {target_fps} FPS for {duration}s."
+    )
+
     options = Options()
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
@@ -244,28 +253,52 @@ def html_to_video_clip(html_code: str, duration: float, resolution=(1080, 960), 
     options.add_argument("--hide-scrollbars")
     options.add_argument(f"--window-size={resolution[0]},{resolution[1]}")
     options.add_argument("--force-device-scale-factor=1")
+
     driver = webdriver.Chrome(options=options)
-    frames = []
-    start = time.time()
+    frames: list[np.ndarray] = []
     try:
         data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(html_code)
         driver.get(data_uri)
         driver.execute_script("document.body.style.margin='0';document.body.style.padding='0';")
 
-        while time.time() - start < duration:
+        # Pause all animations and expose a function to set their current time
+        js_controller = """
+            window.animations = document.getAnimations({ subtree: true });
+            window.animations.forEach(anim => anim.pause());
+            window.setAnimationTime = function(timeInMilliseconds) {
+                window.animations.forEach(anim => {
+                    anim.currentTime = timeInMilliseconds;
+                });
+            };
+        """
+        driver.execute_script(js_controller)
+
+        num_frames_to_capture = int(duration * target_fps)
+        time_step_ms = 1000.0 / target_fps
+        status_text = st.empty()
+
+        for i in range(num_frames_to_capture):
+            percent_complete = (i + 1) / num_frames_to_capture
+            status_text.text(
+                f"Capturing HTML frame {i + 1}/{num_frames_to_capture} ({percent_complete:.0%})..."
+            )
+
+            current_time_ms = i * time_step_ms
+            driver.execute_script(f"window.setAnimationTime({current_time_ms});")
+            time.sleep(0.01)
+
             png = driver.get_screenshot_as_png()
-            with Image.open(BytesIO(png)) as img:
-                frames.append(np.array(img))
+            frames.append(np.array(Image.open(BytesIO(png))))
 
     finally:
-        recorded_duration = time.time() - start
         driver.quit()
 
     if not frames:
-        raise RuntimeError("No frames captured from HTML rendering")
+        raise RuntimeError("No frames were captured from the HTML rendering.")
 
-    actual_fps = max(1, len(frames) / recorded_duration)
-    clip = mp.ImageSequenceClip(frames, fps=actual_fps).set_duration(duration)
+    status_text.text("HTML frame capture complete. Compiling video clip...")
+    clip = mp.ImageSequenceClip(frames, fps=target_fps).set_duration(duration)
+    status_text.empty()
     return clip
 
 # --- 2. Text Generation with Claude ---
@@ -1003,7 +1036,9 @@ def generate_single_video(
         else:
             try:
                 html_code = generate_html_overlay(video_topic, language, anthropic_api_key)
-                html_overlay_clip_obj = html_to_video_clip(html_code, video_duration_final)
+                html_overlay_clip_obj = html_to_video_clip_offline_render(
+                    html_code, video_duration_final
+                )
                 if format == "html_img":
                     background_base_clip_obj = mp.ImageClip(bg_image_for_video_path)
                     background_base_clip_obj = zoom_effect(background_base_clip_obj, 0.035).set_duration(video_duration_final)
