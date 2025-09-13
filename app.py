@@ -202,7 +202,7 @@ def generate_fal_video(full_prompt: str, aspect_ratio: str = "9:16"): # Changed 
 
 # --- HTML Generation and Rendering ---
 def generate_html_overlay(video_topic: str, language: str, anthropic_api_key: str) -> str:
-    html_prompt = f"""for a viral FB reel video gen html with animation responsive view for "{video_topic}" in language {language} , make it  VERY eye catcing design!!! and kinda of low quality style. but not annoying
+    html_prompt = f"""for a viral FB reel video gen html with animation responsive view for "{video_topic}" in language {language} , make it  VERY eye catcing striking enticing design!!! and kinda of low quality style. but not annoying
                 elements: JUST  1 main text big legible, and a Caption (Learn More Now). make sure good spacing and no overlapping text
                 make the content fill the entire view: body margin 0, use flexbox to center elements and large vw/vh-based fonts so there is minimal empty space
                 no frames
