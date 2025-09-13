@@ -217,7 +217,7 @@ def generate_html_overlay(video_topic: str, language: str, anthropic_api_key: st
                 Employment/Education: Do not guarantee job benefits (high pay, remote work) or education outcomes (degrees, job placement).
                 Financial: Do not guarantee loans, credit approval, investment returns, or debt relief. Do not offer banking, insurance, or licensed financial services. Avoid showing money bills.
                 "Free" Promotions: Generally avoid promoting anything as "free."
-
+                make it  VERY eye catcing striking enticing design!!!!!!!!
                 return JUST THE HTML CODE
 """
     raw_html = generate_text_with_claude(html_prompt, anthropic_api_key=anthropic_api_key, model="claude-sonnet-4-20250514",temperature=1)
