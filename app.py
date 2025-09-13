@@ -202,7 +202,7 @@ def generate_fal_video(full_prompt: str, aspect_ratio: str = "9:16"): # Changed 
 
 # --- HTML Generation and Rendering ---
 def generate_html_overlay(video_topic: str, language: str, anthropic_api_key: str) -> str:
-    html_prompt = f"""for a viral FB reel video gen html with animation responsive view for "{video_topic}" in language {language} , make it  VERY eye catcing and sort of low quality style. but not annoying
+    html_prompt = f"""for a viral FB reel video gen html with animation responsive view for "{video_topic}" in language {language} , make it  VERY eye catcing design!!! and kinda of low quality style. but not annoying
                 elements: JUST  1 main text big legible, and a Caption (Learn More Now). make sure good spacing and no overlapping text
                 make the content fill the entire view: body margin 0, use flexbox to center elements and large vw/vh-based fonts so there is minimal empty space
                 no frames
@@ -220,7 +220,7 @@ def generate_html_overlay(video_topic: str, language: str, anthropic_api_key: st
 
                 return JUST THE HTML CODE
 """
-    raw_html = generate_text_with_claude(html_prompt, anthropic_api_key=anthropic_api_key, model="claude-3-7-sonnet-latest")
+    raw_html = generate_text_with_claude(html_prompt, anthropic_api_key=anthropic_api_key, model="claude-sonnet-4-20250514")
     raw_html = raw_html.strip()
     if raw_html.startswith("```"):
         # Remove ```html or ``` wrapper from Claude response
