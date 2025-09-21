@@ -52,8 +52,8 @@ def get_secret(key: str, default=None):
         return os.environ.get(key, default)
 
 
-openai_api_key = get_secret.get("OPENAI_API_KEY", "")
-anthropic_api_key = get_secret.get("ANTHROPIC_API_KEY", "")
+openai_api_key = get_secret("OPENAI_API_KEY", "")
+anthropic_api_key = get_secret("ANTHROPIC_API_KEY", "")
 # ☁️ S3 Configuration
 s3_bucket_name = get_secret("S3_BUCKET_NAME", "")
 aws_access_key = get_secret("AWS_ACCESS_KEY_ID", "")
