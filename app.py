@@ -43,14 +43,23 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # It's better practice to not have default keys in code.
 # These are from your script, will be replaced by st.session_state values.
 # 🧠 API Keys
-openai_api_key = st.secrets.get("OPENAI_API_KEY", "")
-anthropic_api_key = st.secrets.get("ANTHROPIC_API_KEY", "")
+
+def get_secret(key: str, default=None):
+    """Fetch a secret from Streamlit or fall back to environment variables."""
+    try:
+        return st.secrets[key]
+    except Exception:
+        return os.environ.get(key, default)
+
+
+openai_api_key = get_secret.get("OPENAI_API_KEY", "")
+anthropic_api_key = get_secret.get("ANTHROPIC_API_KEY", "")
 # ☁️ S3 Configuration
-s3_bucket_name = st.secrets.get("S3_BUCKET_NAME", "")
-aws_access_key = st.secrets.get("AWS_ACCESS_KEY_ID", "")
-aws_secret_key = st.secrets.get("AWS_SECRET_ACCESS_KEY", "")
-s3_region = st.secrets.get("S3_REGION_NAME", "us-east-1")  # Default fallback
-os.environ["FAL_KEY"] =  st.secrets.get("FAL_KEY")
+s3_bucket_name = get_secret("S3_BUCKET_NAME", "")
+aws_access_key = get_secret("AWS_ACCESS_KEY_ID", "")
+aws_secret_key = get_secret("AWS_SECRET_ACCESS_KEY", "")
+s3_region = get_secret("S3_REGION_NAME", "us-east-1")  # Default fallback
+os.environ["FAL_KEY"] =  get_secret("FAL_KEY")
 # --- Helper for Fal Client ---
 def on_queue_update(update):
     if isinstance(update, fal_client.InProgress):
@@ -62,7 +71,7 @@ def on_queue_update(update):
 
 def google_sheets_append_df(spreadsheet_id,range_name, df_data_input ):
     # Load credentials from Streamlit secrets
-    credentials_dict = st.secrets["gcp_service_account"]
+    credentials_dict = get_secret["gcp_service_account"]
     # st.text(credentials_dict)
     creds = service_account.Credentials.from_service_account_info(
         credentials_dict,
