@@ -71,7 +71,8 @@ def on_queue_update(update):
 
 def google_sheets_append_df(spreadsheet_id,range_name, df_data_input ):
     # Load credentials from Streamlit secrets
-    credentials_dict = get_secret["gcp_service_account"]
+    credentials_dict = json.loads(get_secret("gcp_service_account"))
+    
     # st.text(credentials_dict)
     creds = service_account.Credentials.from_service_account_info(
         credentials_dict,
