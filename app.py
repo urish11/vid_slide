@@ -566,6 +566,7 @@ def create_facebook_ad_new(bg_img_path: str, headline_text1, headline_text2, hea
                 elif ".mp4" in bg_img_path:
                     background_clip_obj = mp.VideoFileClip(bg_img_path)
                     # background_clip_obj = loop_with_crossfade(background_clip_obj, duration)
+                    background_clip_obj = loop(background_clip_obj, duration) 
                     background_clip_obj = background_clip_obj.fx(mp.vfx.speedx, 0.8)
 
             except Exception as e:
@@ -1053,7 +1054,8 @@ def generate_single_video(
                     background_base_clip_obj = zoom_effect(background_base_clip_obj, 0.035).set_duration(video_duration_final)
                 else:
                     background_base_clip_obj = mp.VideoFileClip(bg_image_for_video_path)
-                    background_base_clip_obj = loop_with_crossfade(background_base_clip_obj, video_duration_final)
+                    # background_base_clip_obj = loop_with_crossfade(background_base_clip_obj, video_duration_final)
+                    background_clip_obj = loop(background_clip_obj, duration)
                 top_clip = html_overlay_clip_obj.resize((1080,960)).set_position((0,0))
                 bottom_clip = background_base_clip_obj.resize((1080,960)).set_position((0,960))
                 video_visuals_clip_obj = mp.CompositeVideoClip([top_clip, bottom_clip], size=(1080,1920)).set_duration(video_duration_final)
