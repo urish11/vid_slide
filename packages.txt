@@ -1,1 +1,3 @@
 imagemagick
+chromium
+chromium-driver
